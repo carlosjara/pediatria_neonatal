@@ -66,27 +66,15 @@ class Sexo(StrEnum):
 class EdadCorregida:
     """Resultado del cálculo de edad corregida neonatal.
 
-    Attributes
-    ----------
-    edad_cronologica_dias:
-        Días transcurridos desde el nacimiento hasta la medición.
+    La edad corregida se conserva internamente en días y semanas.
 
-    prematuridad_dias:
-        Días faltantes desde la edad gestacional al nacimiento hasta
-        completar 40 semanas.
+    Para la presentación en meses se utiliza la equivalencia clínica
+    aproximada:
 
-    edad_corregida_total_dias:
-        Edad cronológica menos los días de prematuridad.
+        1 mes = 4 semanas = 28 días
 
-    semanas:
-        Semanas completas de la edad corregida.
-
-    dias:
-        Días restantes después de calcular las semanas completas.
-
-    es_antes_de_termino:
-        Indica si la fecha de medición ocurre antes de la fecha teórica
-        de término.
+    Esta conversión no representa meses calendario, debido a que estos
+    pueden tener entre 28 y 31 días.
     """
 
     edad_cronologica_dias: int
@@ -96,14 +84,33 @@ class EdadCorregida:
     dias: int
     es_antes_de_termino: bool
 
+    SEMANAS_POR_MES = 4
+
+    @property
+    def meses(self) -> int:
+        """Retorna los meses aproximados completos de edad corregida."""
+
+        return self.semanas // self.SEMANAS_POR_MES
+
+    @property
+    def semanas_restantes(self) -> int:
+        """Retorna las semanas restantes después de calcular los meses."""
+
+        return self.semanas % self.SEMANAS_POR_MES
+
     @property
     def texto(self) -> str:
-        """Retorna la edad corregida en formato legible."""
+        """Retorna la edad corregida incluyendo meses aproximados."""
 
         prefijo = "-" if self.es_antes_de_termino else ""
-        return f"{prefijo}{self.semanas} semanas y {self.dias} días"
 
-
+        return (
+            f"{prefijo}{self.meses} meses, "
+            f"{self.semanas_restantes} semanas y "
+            f"{self.dias} días "
+            f"({self.semanas} semanas totales)"
+        )
+        
 @dataclass(frozen=True, slots=True)
 class ParametrosLMS:
     """Parámetros LMS utilizados en el cálculo de puntuación Z.
