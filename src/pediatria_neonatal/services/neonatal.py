@@ -9,8 +9,12 @@ from pediatria_neonatal.domain.exceptions import (
     ErrorFecha,
 )
 from pediatria_neonatal.domain.models import EdadCorregida
+from pediatria_neonatal.domain.paciente import (
+    FechaCompatible,
+    Paciente,
+)
 
-FechaCompatible = date | datetime | str
+FechaEntrada = date | datetime | str
 
 
 class CalculadoraNeonatal:
@@ -23,42 +27,66 @@ class CalculadoraNeonatal:
     EDAD_GESTACIONAL_MAXIMA_SEMANAS = 42
     EDAD_GESTACIONAL_MAXIMA_DIAS = 6
 
+    def calcular_edad_corregida_paciente(
+        self,
+        paciente: Paciente,
+        fecha_medicion: FechaCompatible,
+    ) -> EdadCorregida:
+        """Calcula la edad corregida usando una entidad ``Paciente``.
+
+        Este método es el recomendado para la aplicación porque evita
+        repetir los datos neonatales en cada cálculo.
+
+        Parameters
+        ----------
+        paciente:
+            Paciente con fecha de nacimiento y datos neonatales.
+
+        fecha_medicion:
+            Fecha en la cual se desea calcular la edad corregida.
+
+        Returns
+        -------
+        EdadCorregida
+            Resultado con edad cronológica, prematuridad y edad corregida.
+        """
+
+        fecha_normalizada = paciente.validar_fecha_medicion(
+            fecha_medicion,
+        )
+
+        datos_neonatales = paciente.datos_neonatales
+
+        return self.calcular_edad_corregida(
+            fecha_nacimiento=paciente.fecha_nacimiento,
+            fecha_medicion=fecha_normalizada,
+            eg_semanas=datos_neonatales.edad_gestacional_semanas,
+            eg_dias=datos_neonatales.edad_gestacional_dias,
+        )
+
     def calcular_edad_corregida(
         self,
-        fecha_nacimiento: FechaCompatible,
-        fecha_medicion: FechaCompatible,
+        fecha_nacimiento: FechaEntrada,
+        fecha_medicion: FechaEntrada,
         eg_semanas: int,
         eg_dias: int,
     ) -> EdadCorregida:
         """Calcula la edad corregida de un paciente neonatal.
 
-        La edad corregida se obtiene restando a la edad cronológica
-        los días de prematuridad.
+        Fórmulas utilizadas:
 
-        Fórmula:
+            edad_gestacional_dias = eg_semanas * 7 + eg_dias
 
-            edad corregida =
-                edad cronológica
-                - días faltantes para completar 40 semanas
+            prematuridad_dias =
+                max(0, 40 * 7 - edad_gestacional_dias)
 
-        La edad gestacional total al nacimiento se calcula así:
-
-            edad gestacional en días =
-                eg_semanas * 7 + eg_dias
-
-        La prematuridad se calcula respecto de 40 semanas:
-
-            prematuridad =
-                280 días - edad gestacional al nacimiento
-
-        Para nacimientos de 40 semanas o más, la prematuridad se
-        considera igual a cero.
+            edad_corregida_dias =
+                edad_cronologica_dias - prematuridad_dias
 
         Parameters
         ----------
         fecha_nacimiento:
-            Fecha de nacimiento como ``date``, ``datetime`` o texto
-            ISO con formato ``YYYY-MM-DD``.
+            Fecha de nacimiento como ``date``, ``datetime`` o texto ISO.
 
         fecha_medicion:
             Fecha en la cual se realiza la medición.
@@ -72,17 +100,15 @@ class CalculadoraNeonatal:
         Returns
         -------
         EdadCorregida
-            Objeto inmutable con edad cronológica, prematuridad y
-            edad corregida.
+            Resultado inmutable del cálculo.
 
         Raises
         ------
         ErrorFecha
-            Si las fechas son inválidas o la medición es anterior
-            al nacimiento.
+            Si las fechas son inválidas o inconsistentes.
 
         ErrorEdadGestacional
-            Si la edad gestacional está fuera de los límites permitidos.
+            Si la edad gestacional está fuera del rango permitido.
         """
 
         nacimiento = self._normalizar_fecha(
@@ -206,7 +232,7 @@ class CalculadoraNeonatal:
 
     @staticmethod
     def _normalizar_fecha(
-        valor: FechaCompatible,
+        valor: FechaEntrada,
         *,
         nombre_campo: str,
     ) -> date:
