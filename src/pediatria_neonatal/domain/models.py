@@ -7,7 +7,6 @@ from enum import StrEnum
 
 from pediatria_neonatal.domain.exceptions import ErrorTablaLMS
 
-
 class Sexo(StrEnum):
     """Sexo utilizado por las tablas antropométricas LMS."""
 
@@ -110,47 +109,3 @@ class EdadCorregida:
             f"{self.dias} días "
             f"({self.semanas} semanas totales)"
         )
-        
-@dataclass(frozen=True, slots=True)
-class ParametrosLMS:
-    """Parámetros LMS utilizados en el cálculo de puntuación Z.
-
-    La metodología LMS representa la distribución de una medida
-    antropométrica mediante tres parámetros:
-
-    ``lambda_box_cox``:
-        Parámetro L. Potencia Box-Cox utilizada para corregir la
-        asimetría de la distribución.
-
-    ``mediana``:
-        Parámetro M. Mediana esperada para un sexo y una edad
-        determinados.
-
-    ``coeficiente_variacion``:
-        Parámetro S. Coeficiente de variación generalizado.
-    """
-
-    sexo: Sexo
-    edad_meses: float
-    lambda_box_cox: float
-    mediana: float
-    coeficiente_variacion: float
-    fuente: str | None = None
-
-    def __post_init__(self) -> None:
-        """Valida que los parámetros LMS sean matemáticamente válidos."""
-
-        if self.edad_meses < 0:
-            raise ErrorTablaLMS(
-                "La edad en meses no puede ser negativa."
-            )
-
-        if self.mediana <= 0:
-            raise ErrorTablaLMS(
-                "El parámetro M debe ser mayor que cero."
-            )
-
-        if self.coeficiente_variacion <= 0:
-            raise ErrorTablaLMS(
-                "El parámetro S debe ser mayor que cero."
-            )

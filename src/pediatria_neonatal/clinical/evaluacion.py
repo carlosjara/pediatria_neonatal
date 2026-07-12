@@ -8,35 +8,10 @@ from enum import StrEnum
 
 from pediatria_neonatal.domain.exceptions import ErrorDatoAntropometrico
 
-
-class IndicadorCrecimiento(StrEnum):
-    """Indicadores antropométricos soportados por el motor clínico."""
-
-    IMC_PARA_EDAD = "bmi_for_age"
-    PESO_PARA_LONGITUD = "weight_for_length"
-    PESO_PARA_TALLA = "weight_for_height"
-    PESO_PARA_EDAD = "weight_for_age"
-    LONGITUD_PARA_EDAD = "length_for_age"
-    TALLA_PARA_EDAD = "height_for_age"
-    PERIMETRO_CEFALICO_PARA_EDAD = "head_circumference_for_age"
-
-    PESO_PARA_EDAD_GESTACIONAL = "weight_for_gestational_age"
-    LONGITUD_PARA_EDAD_GESTACIONAL = "length_for_gestational_age"
-    PERIMETRO_CEFALICO_PARA_EDAD_GESTACIONAL = (
-        "head_circumference_for_gestational_age"
-    )
-
-    INDICE_OBESIDAD = "obesity_index"
-
-
-class ReferenciaCrecimiento(StrEnum):
-    """Fuentes de referencia disponibles para interpretar el crecimiento."""
-
-    OMS_2006 = "WHO_2006"
-    FENTON_2025 = "FENTON_2025"
-    INTERGROWTH_21 = "INTERGROWTH_21"
-    SIN_REFERENCIA = "NONE"
-
+from pediatria_neonatal.domain.lms import (
+    IndicadorCrecimiento,
+    ReferenciaCrecimiento,
+)
 
 class NivelSeveridad(StrEnum):
     """Nivel de relevancia clínica de un resultado."""

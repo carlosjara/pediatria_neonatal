@@ -9,8 +9,7 @@ from pediatria_neonatal.domain.exceptions import (
     ErrorDatoAntropometrico,
     ErrorTablaLMS,
 )
-from pediatria_neonatal.domain.models import ParametrosLMS
-
+from pediatria_neonatal.domain.lms import ParametrosLMS
 
 @dataclass(frozen=True, slots=True)
 class ResultadoZScore:
