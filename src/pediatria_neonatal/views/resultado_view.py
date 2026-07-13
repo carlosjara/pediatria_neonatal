@@ -174,27 +174,27 @@ class ResultadoView:
         )
 
     def _format_age_from_days(self, total_days: int) -> str:
-        """Formatea días totales a texto legible."""
+        """Formatea días totales a texto legible con abreviaturas."""
         if total_days < 0:
             return "Antes de término"
 
         if total_days < 30:
-            return f"{total_days} días"
+            return f"{total_days}D"
 
         months = total_days // 30
         days = total_days % 30
 
         if months < 12:
             if days > 0:
-                return f"{months} meses, {days} días"
-            return f"{months} meses"
+                return f"{months}M, {days}D"
+            return f"{months}M"
 
         years = months // 12
         remaining_months = months % 12
 
         if remaining_months > 0:
-            return f"{years} años, {remaining_months} meses"
-        return f"{years} años"
+            return f"{years}a, {remaining_months}M"
+        return f"{years}a"
 
     def _build_result_cards(self, imc_data: dict) -> toga.Box:
         """Construye las tarjetas de resultados."""
@@ -232,7 +232,7 @@ class ResultadoView:
         return toga.Box(
             children=cards,
             style=Pack(
-                direction=ROW,
+                direction=COLUMN,
                 padding_top=SPACING_SM,
                 padding_bottom=SPACING_SM,
             ),

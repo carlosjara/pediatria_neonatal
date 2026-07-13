@@ -21,9 +21,8 @@ from pediatria_neonatal.controllers.resultado_controller import (
 )
 from pediatria_neonatal.resources.icons import get_icons
 from pediatria_neonatal.views.components import (
-    body_text,
     primary_button,
-    screen_box,
+    scroll_screen,
     subtitle,
     title,
 )
@@ -118,23 +117,35 @@ class PediatriaNeonatalApp(toga.App):
 
     def build_home(self) -> toga.Widget:
         """Construye la pantalla de inicio."""
-        content = screen_box(
-            title("Pediatría Neonatal"),
-            subtitle("Bienvenido"),
-            body_text(
-                "Aplicación para evaluación antropométrica "
-                "de pacientes pediátricos y neonatales."
-            ),
-            body_text(
-                "Registre un paciente en la pestaña 'Pacientes' "
-                "para comenzar una evaluación."
-            ),
-            primary_button(
-                "Nuevo paciente",
-                lambda w: self._go_to_patients(),
-            ),
+        return scroll_screen(
+            toga.Box(
+                children=[
+                    title("Pediatría Neonatal"),
+                    subtitle("Bienvenido"),
+                    toga.Label(
+                        "Evaluación antropométrica",
+                        style=Pack(font_size=14, padding_bottom=4),
+                    ),
+                    toga.Label(
+                        "para pacientes pediátricos.",
+                        style=Pack(font_size=14, padding_bottom=16),
+                    ),
+                    toga.Label(
+                        "Toca 'Nuevo paciente' o ve a",
+                        style=Pack(font_size=14, padding_bottom=4),
+                    ),
+                    toga.Label(
+                        "la pestaña Pacientes.",
+                        style=Pack(font_size=14, padding_bottom=24),
+                    ),
+                    primary_button(
+                        "Nuevo paciente",
+                        lambda w: self._go_to_patients(),
+                    ),
+                ],
+                style=Pack(direction=COLUMN, padding=24),
+            )
         )
-        return content
 
     def _go_to_patients(self) -> None:
         """Navega a la pestaña de pacientes."""
@@ -154,10 +165,50 @@ class PediatriaNeonatalApp(toga.App):
 
     def build_settings(self) -> toga.Widget:
         """Construye la pantalla de ajustes."""
-        return screen_box(
-            title("Ajustes"),
-            body_text("Próximamente: configuración de la aplicación."),
+        return scroll_screen(
+            toga.Box(
+                children=[
+                    title("Ajustes"),
+                    subtitle("Apariencia"),
+                    toga.Label(
+                        "Modo claro/oscuro:",
+                        style=Pack(font_size=14, padding_bottom=8),
+                    ),
+                    toga.Label(
+                        "1. Ajustes del iPhone",
+                        style=Pack(font_size=14, padding_bottom=4),
+                    ),
+                    toga.Label(
+                        "2. Pantalla y Brillo",
+                        style=Pack(font_size=14, padding_bottom=4),
+                    ),
+                    toga.Label(
+                        "3. Claro u Oscuro",
+                        style=Pack(font_size=14, padding_bottom=16),
+                    ),
+                    toga.Button(
+                        "Abrir Ajustes",
+                        on_press=self._open_settings,
+                        style=Pack(padding_top=8),
+                    ),
+                    subtitle("Información"),
+                    toga.Label(
+                        "Versión: 1.0.0",
+                        style=Pack(font_size=14, padding_bottom=4),
+                    ),
+                    toga.Label(
+                        "Evaluación pediátrica neonatal",
+                        style=Pack(font_size=14),
+                    ),
+                ],
+                style=Pack(direction=COLUMN, padding=24),
+            )
         )
+
+    def _open_settings(self, widget: toga.Widget) -> None:
+        """Abre los ajustes del sistema."""
+        import webbrowser
+        webbrowser.open("app-settings:")
 
 
 def main() -> PediatriaNeonatalApp:

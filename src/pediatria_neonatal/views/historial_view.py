@@ -112,52 +112,74 @@ class HistorialView:
         }
         color = color_map.get(severidad, COLOR_MUTED)
 
+        # Extraer edad y edad corregida
+        edad_texto = medicion.get("edad_texto", "")
+        es_prematuro = medicion.get("es_prematuro", False)
+        edad_corregida_texto = medicion.get("edad_corregida_texto", "")
+
+        children = [
+            toga.Box(
+                children=[
+                    toga.Label(
+                        paciente,
+                        style=Pack(
+                            font_size=FONT_SIZE_BODY,
+                            font_weight="bold",
+                            flex=1,
+                        ),
+                    ),
+                    toga.Label(
+                        fecha,
+                        style=Pack(
+                            font_size=FONT_SIZE_CAPTION,
+                            color=COLOR_MUTED,
+                        ),
+                    ),
+                ],
+                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+            ),
+            toga.Label(
+                edad_texto,
+                style=Pack(font_size=FONT_SIZE_CAPTION, color=COLOR_MUTED),
+            ),
+            toga.Box(
+                children=[
+                    toga.Label(
+                        f"IMC: {imc:.1f}",
+                        style=Pack(
+                            font_size=FONT_SIZE_BODY,
+                            flex=1,
+                        ),
+                    ),
+                    toga.Label(
+                        clasificacion,
+                        style=Pack(
+                            font_size=FONT_SIZE_BODY,
+                            font_weight="bold",
+                            color=color,
+                        ),
+                    ),
+                ],
+                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+            ),
+        ]
+
+        # Agregar edad corregida solo si es prematuro
+        if es_prematuro and edad_corregida_texto:
+            children.append(
+                toga.Label(
+                    f"Edad corregida: {edad_corregida_texto}",
+                    style=Pack(
+                        font_size=FONT_SIZE_CAPTION,
+                        color=COLOR_MUTED,
+                    ),
+                )
+            )
+
         return toga.Box(
-            children=[
-                toga.Box(
-                    children=[
-                        toga.Label(
-                            paciente,
-                            style=Pack(
-                                font_size=FONT_SIZE_BODY,
-                                font_weight="bold",
-                                flex=1,
-                            ),
-                        ),
-                        toga.Label(
-                            fecha,
-                            style=Pack(
-                                font_size=FONT_SIZE_CAPTION,
-                                color=COLOR_MUTED,
-                            ),
-                        ),
-                    ],
-                    style=Pack(direction=ROW, padding_bottom=SPACING_XS),
-                ),
-                toga.Box(
-                    children=[
-                        toga.Label(
-                            f"IMC: {imc:.1f}",
-                            style=Pack(
-                                font_size=FONT_SIZE_BODY,
-                                flex=1,
-                            ),
-                        ),
-                        toga.Label(
-                            clasificacion,
-                            style=Pack(
-                                font_size=FONT_SIZE_BODY,
-                                font_weight="bold",
-                                color=color,
-                            ),
-                        ),
-                    ],
-                    style=Pack(direction=ROW),
-                ),
-            ],
+            children=children,
             style=Pack(
                 direction=COLUMN,
                 padding=SPACING_MD,
-                background_color="#F9FAFB",
             ),
         )

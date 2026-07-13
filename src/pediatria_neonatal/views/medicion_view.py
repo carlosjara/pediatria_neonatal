@@ -87,6 +87,7 @@ class MedicionView:
                     style=Pack(padding_top=SPACING_SM),
                 ),
                 self.message_label,
+                toga.Box(style=Pack(height=300)),
             ],
             style=Pack(
                 direction=COLUMN,

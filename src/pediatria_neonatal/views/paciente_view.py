@@ -101,7 +101,7 @@ class PacienteView:
                 subtitle("Datos al nacimiento"),
                 field_label("Edad gestacional"),
                 gestational_age_row,
-                field_label("Peso al nacer"),
+                field_label("Peso al nacer (gramos)"),
                 self.peso_input,
                 self.prematuro_switch,
                 toga.Button(
@@ -113,6 +113,7 @@ class PacienteView:
                     ),
                 ),
                 self.message_label,
+                toga.Box(style=Pack(height=300)),
             ],
             style=Pack(
                 direction=COLUMN,

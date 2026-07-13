@@ -20,8 +20,8 @@ COLOR_PRIMARY = "#2563EB"
 COLOR_SUCCESS = "#16A34A"
 COLOR_WARNING = "#D97706"
 COLOR_DANGER = "#DC2626"
-COLOR_MUTED = "#6B7280"
-COLOR_BACKGROUND = "#F9FAFB"
+COLOR_MUTED = "#9CA3AF"
+COLOR_BACKGROUND = None
 
 
 def title(text: str) -> toga.Label:
@@ -151,7 +151,7 @@ def alert_box(
         style=Pack(
             direction=ROW,
             padding=SPACING_MD,
-            background_color=bg_map.get(severity, COLOR_BACKGROUND),
+            background_color=bg_map.get(severity),
         ),
     )
 
@@ -275,12 +275,14 @@ def result_card(
 
     if detail:
         children.append(
-            toga.Label(
-                detail,
+            toga.MultilineTextInput(
+                value=detail,
+                readonly=True,
                 style=Pack(
                     font_size=FONT_SIZE_CAPTION,
-                    color=COLOR_MUTED,
                     padding_top=SPACING_XS,
+                    height=50,
+                    flex=1,
                 ),
             ),
         )
@@ -290,8 +292,7 @@ def result_card(
         style=Pack(
             direction=COLUMN,
             padding=SPACING_MD,
-            background_color=bg_color,
-            flex=1,
+            padding_bottom=SPACING_SM,
         ),
     )
 
@@ -382,7 +383,6 @@ def patient_summary_card(
         style=Pack(
             direction=COLUMN,
             padding=SPACING_MD,
-            background_color=COLOR_BACKGROUND,
         ),
     )
 
@@ -465,7 +465,6 @@ def age_display(
         style=Pack(
             direction=COLUMN,
             padding=SPACING_MD,
-            background_color="#EFF6FF",
         ),
     )
 
@@ -576,7 +575,6 @@ def card_box(*children: toga.Widget) -> toga.Box:
         style=Pack(
             direction=COLUMN,
             padding=SPACING_MD,
-            background_color=COLOR_BACKGROUND,
         ),
     )
 

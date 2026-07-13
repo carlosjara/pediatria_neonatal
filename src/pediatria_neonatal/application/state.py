@@ -18,6 +18,9 @@ class AppState:
             return
 
         imc_data = self.resultados_actuales.get("imc", {})
+        edad_corregida = self.resultados_actuales.get("edad_corregida", {})
+
+        es_prematuro = self.paciente_actual.es_prematuro
 
         entrada = {
             "fecha": date.today().isoformat(),
@@ -26,9 +29,13 @@ class AppState:
             "imc": imc_data.get("valor", 0),
             "clasificacion": imc_data.get("clasificacion", ""),
             "severidad": imc_data.get("severidad", "normal"),
-            "edad_corregida": self.resultados_actuales.get(
-                "edad_corregida", {}
-            ).get("texto", ""),
+            "edad_texto": self.resultados_actuales.get(
+                "edad_cronologica_texto", ""
+            ),
+            "es_prematuro": es_prematuro,
+            "edad_corregida_texto": edad_corregida.get("texto", "")
+            if es_prematuro
+            else "",
         }
 
         self.historial_mediciones.insert(0, entrada)
