@@ -14,6 +14,7 @@ from pediatria_neonatal.views.components import (
     age_display,
     alert_box,
     hero_value,
+    info_row,
     patient_summary_card,
     primary_button,
     result_card,
@@ -50,6 +51,9 @@ class ResultadoView:
 
         if "edad_corregida" in self.resultados:
             children.append(self._build_age_section())
+
+        # Agregar sección de mediciones actuales
+        children.append(self._build_measurements_section())
 
         if "imc" in self.resultados:
             children.append(self._build_imc_section())
@@ -110,6 +114,48 @@ class ResultadoView:
             edad_cronologica=edad_cronologica,
             edad_corregida=edad_corregida_texto,
             es_prematuro=es_prematuro,
+        )
+
+    def _build_measurements_section(self) -> toga.Box:
+        """Construye la sección con los datos de medición actuales."""
+        # Obtener datos de medición desde el estado o resultados
+        medicion = self.resultados.get("medicion_actual", {})
+        
+        # Si no hay datos en resultados, intentar desde paciente_data
+        if not medicion:
+            medicion = {
+                "peso_kg": self.paciente_data.get("peso_actual"),
+                "talla_cm": self.paciente_data.get("talla_actual"),
+                "perimetro_cefalico_cm": self.paciente_data.get("perimetro_cefalico_actual"),
+                "fecha_medicion": self.paciente_data.get("fecha_medicion"),
+            }
+        
+        children = [section_header("Mediciones actuales", "Datos antropométricos")]
+        
+        # Peso
+        if medicion.get("peso_kg"):
+            children.append(info_row("Peso", f"{medicion['peso_kg']:.1f} kg"))
+        
+        # Talla
+        if medicion.get("talla_cm"):
+            children.append(info_row("Talla", f"{medicion['talla_cm']:.1f} cm"))
+        
+        # Perímetro cefálico
+        if medicion.get("perimetro_cefalico_cm"):
+            children.append(info_row("Perímetro cefálico", f"{medicion['perimetro_cefalico_cm']:.1f} cm"))
+        
+        # Fecha de medición
+        if medicion.get("fecha_medicion"):
+            fecha = medicion["fecha_medicion"]
+            if hasattr(fecha, "strftime"):
+                fecha_str = fecha.strftime("%d/%m/%Y")
+            else:
+                fecha_str = str(fecha)
+            children.append(info_row("Fecha", fecha_str))
+        
+        return toga.Box(
+            children=children,
+            style=Pack(direction=COLUMN),
         )
 
     def _build_imc_section(self) -> toga.Box:
@@ -174,7 +220,7 @@ class ResultadoView:
         )
 
     def _format_age_from_days(self, total_days: int) -> str:
-        """Formatea días totales a texto legible con abreviaturas."""
+        """Formatea días totales a texto legible con abreviaturas y semanas."""
         if total_days < 0:
             return "Antes de término"
 
@@ -183,11 +229,15 @@ class ResultadoView:
 
         months = total_days // 30
         days = total_days % 30
+        
+        # Calcular semanas
+        weeks = total_days // 7
+        remaining_days = total_days % 7
 
         if months < 12:
             if days > 0:
-                return f"{months}M, {days}D"
-            return f"{months}M"
+                return f"{months}M, {days}D ({weeks}S, {remaining_days}D)"
+            return f"{months}M ({weeks}S)"
 
         years = months // 12
         remaining_months = months % 12
@@ -199,6 +249,16 @@ class ResultadoView:
     def _build_result_cards(self, imc_data: dict) -> toga.Box:
         """Construye las tarjetas de resultados."""
         cards = []
+
+        # Mostrar valor del IMC con 2 decimales
+        if "valor" in imc_data:
+            cards.append(
+                result_card(
+                    label="IMC",
+                    value=f"{imc_data['valor']:.2f}",
+                    severity="normal",
+                )
+            )
 
         if "clasificacion" in imc_data:
             severity = imc_data.get("severidad", "normal")

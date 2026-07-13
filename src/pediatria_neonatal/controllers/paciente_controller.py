@@ -15,13 +15,18 @@ class PacienteController:
         self,
         state: AppState,
         on_patient_saved: Callable[[], None],
+        on_calcular_edad: Callable[[], None] | None = None,
     ) -> None:
         self.state = state
         self.on_patient_saved = on_patient_saved
+        self.on_calcular_edad = on_calcular_edad
         self.view: PacienteView | None = None
 
     def build_view(self) -> toga.Widget:
-        self.view = PacienteView(on_save=self.save)
+        self.view = PacienteView(
+            on_save=self.save,
+            on_calcular_edad=self.on_calcular_edad,
+        )
         return self.view.build()
 
     def save(self, raw_data: dict[str, Any]) -> None:

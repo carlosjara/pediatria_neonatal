@@ -33,7 +33,9 @@ class AppState:
                 "edad_cronologica_texto", ""
             ),
             "es_prematuro": es_prematuro,
-            "edad_corregida_texto": edad_corregida.get("texto", "")
+            "edad_corregida_texto": self.resultados_actuales.get(
+                "edad_corregida_texto", ""
+            )
             if es_prematuro
             else "",
         }

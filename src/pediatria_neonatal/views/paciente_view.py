@@ -19,8 +19,10 @@ class PacienteView:
     def __init__(
         self,
         on_save: Callable[[dict], None],
+        on_calcular_edad: Callable[[], None] | None = None,
     ) -> None:
         self.on_save = on_save
+        self.on_calcular_edad = on_calcular_edad
         self.selected_sex = "Masculino"
 
         self.nombre_input = toga.TextInput(
@@ -144,6 +146,11 @@ class PacienteView:
                 "prematuro": self.prematuro_switch.value,
             }
         )
+
+    def calcular_edad(self, widget: toga.Widget) -> None:
+        """Abre la calculadora de edad corregida."""
+        if self.on_calcular_edad:
+            self.on_calcular_edad()
 
     def show_error(self, message: str) -> None:
         self.message_label.text = message

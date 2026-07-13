@@ -145,7 +145,7 @@ class HistorialView:
             toga.Box(
                 children=[
                     toga.Label(
-                        f"IMC: {imc:.1f}",
+                        f"IMC: {imc:.2f}",
                         style=Pack(
                             font_size=FONT_SIZE_BODY,
                             flex=1,

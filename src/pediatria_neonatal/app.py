@@ -7,6 +7,9 @@ from pediatria_neonatal.application.context import (
 )
 from pediatria_neonatal.application.navigator import Navigator
 from pediatria_neonatal.application.state import AppState
+from pediatria_neonatal.controllers.edad_corregida_controller import (
+    EdadCorregidaController,
+)
 from pediatria_neonatal.controllers.historial_controller import (
     HistorialController,
 )
@@ -84,6 +87,7 @@ class PediatriaNeonatalApp(toga.App):
         self.patient_controller = PacienteController(
             state=self.state,
             on_patient_saved=self.show_measurement,
+            on_calcular_edad=self.show_edad_corregida,
         )
 
         self.measurement_controller = MedicionController(
@@ -91,12 +95,18 @@ class PediatriaNeonatalApp(toga.App):
             services=self.services,
             on_results_ready=self.show_results,
             on_back=self.show_patient,
+            on_calcular_edad=self.show_edad_corregida,
         )
 
         self.result_controller = ResultadoController(
             state=self.state,
             on_new_measurement=self.show_measurement,
             on_back_to_patient=self.show_patient,
+        )
+
+        self.edad_corregida_controller = EdadCorregidaController(
+            state=self.state,
+            on_back=self.show_patient,
         )
 
         self.historial_controller = HistorialController(
@@ -114,6 +124,10 @@ class PediatriaNeonatalApp(toga.App):
     def show_results(self) -> None:
         """Muestra la pantalla de resultados."""
         self.navigator.show(self.result_controller.build_view)
+
+    def show_edad_corregida(self) -> None:
+        """Muestra la calculadora de edad corregida."""
+        self.navigator.show(self.edad_corregida_controller.build_view)
 
     def build_home(self) -> toga.Widget:
         """Construye la pantalla de inicio."""

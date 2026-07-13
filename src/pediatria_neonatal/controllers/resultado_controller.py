@@ -50,9 +50,22 @@ class ResultadoController:
     def _build_patient_data(self, paciente: Any) -> dict[str, Any]:
         """Construye diccionario con datos del paciente para la vista."""
         datos = paciente.datos_neonatales
-        return {
+        medicion = self.state.medicion_actual
+        
+        patient_data = {
             "sexo": paciente.sexo.value,
             "es_prematuro": paciente.es_prematuro,
             "semanas_eg": datos.edad_gestacional_semanas,
             "peso_nacer_g": datos.peso_nacimiento_kg * 1000,
         }
+        
+        # Agregar datos de medición actual si existen
+        if medicion:
+            patient_data.update({
+                "peso_actual": medicion.peso_kg,
+                "talla_actual": medicion.talla_cm,
+                "perimetro_cefalico_actual": medicion.perimetro_cefalico_cm,
+                "fecha_medicion": medicion.fecha_medicion,
+            })
+        
+        return patient_data

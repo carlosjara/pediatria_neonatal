@@ -29,11 +29,13 @@ class MedicionView:
         paciente_info: str,
         on_calculate: Callable[[dict], None],
         on_back: Callable[[], None],
+        on_calcular_edad: Callable[[], None] | None = None,
     ) -> None:
         self.paciente_nombre = paciente_nombre
         self.paciente_info = paciente_info
         self.on_calculate = on_calculate
         self.on_back = on_back
+        self.on_calcular_edad = on_calcular_edad
 
         self.fecha_input = toga.DateInput(
             value=date.today(),
@@ -61,6 +63,15 @@ class MedicionView:
             style=Pack(padding_top=SPACING_MD),
         )
 
+        self.edad_corregida_label = toga.Label(
+            "",
+            style=Pack(
+                padding_top=SPACING_SM,
+                font_size=12,
+                color="#6B7280",
+            ),
+        )
+
     def build(self) -> toga.Widget:
         """Construye la interfaz del formulario de medición."""
         content = toga.Box(
@@ -71,6 +82,12 @@ class MedicionView:
                 subtitle("Datos de la medición"),
                 field_label("Fecha de medición"),
                 self.fecha_input,
+                toga.Button(
+                    "Calcular edad corregida",
+                    on_press=self.calcular_edad,
+                    style=Pack(padding_top=SPACING_SM, padding_bottom=SPACING_SM),
+                ),
+                self.edad_corregida_label,
                 field_label("Peso (kg)"),
                 self.peso_input,
                 caption_text("Ingrese el peso en kilogramos"),
@@ -108,6 +125,23 @@ class MedicionView:
                 "perimetro_cefalico_cm": self.perimetro_input.value,
             }
         )
+
+    def calcular_edad(self, widget: toga.Widget) -> None:
+        """Calcula y muestra la edad corregida para la fecha actual."""
+        if self.on_calcular_edad:
+            self.on_calcular_edad()
+
+    def show_edad_corregida(self, resultado: dict) -> None:
+        """Muestra el resultado del cálculo de edad corregida."""
+        edad_cronologica = resultado.get("edad_cronologica_texto", "")
+        edad_corregida = resultado.get("edad_corregida_texto", "")
+        
+        texto = f"Edad cronológica: {edad_cronologica}"
+        
+        if resultado.get("es_prematuro", False) and edad_corregida:
+            texto += f"\nEdad corregida: {edad_corregida}"
+        
+        self.edad_corregida_label.text = texto
 
     def go_back(self, widget: toga.Widget) -> None:
         """Regresa a la pantalla anterior."""

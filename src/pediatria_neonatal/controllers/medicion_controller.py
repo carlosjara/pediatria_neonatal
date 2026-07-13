@@ -20,11 +20,13 @@ class MedicionController:
         services: ServiceContext,
         on_results_ready: Callable[[], None],
         on_back: Callable[[], None],
+        on_calcular_edad: Callable[[], None] | None = None,
     ) -> None:
         self.state = state
         self.services = services
         self.on_results_ready = on_results_ready
         self.on_back = on_back
+        self.on_calcular_edad = on_calcular_edad
         self.view: MedicionView | None = None
 
     def build_view(self) -> toga.Widget:
@@ -41,6 +43,7 @@ class MedicionController:
             paciente_info=paciente_info,
             on_calculate=self.calculate,
             on_back=self.on_back,
+            on_calcular_edad=self.calcular_edad_corregida,
         )
 
         return self.view.build()
@@ -101,6 +104,11 @@ class MedicionController:
             fecha_medicion=medicion.fecha_medicion,
         )
 
+        # Formatear edad cronológica con abreviaturas
+        edad_cronologica_texto = self._format_age_from_days(
+            edad_corregida.edad_cronologica_dias
+        )
+
         resultados["edad_corregida"] = {
             "texto": edad_corregida.texto,
             "semanas": edad_corregida.semanas,
@@ -111,6 +119,15 @@ class MedicionController:
             "es_prematuro": paciente.es_prematuro,
             "es_antes_de_termino": edad_corregida.es_antes_de_termino,
         }
+        
+        # Agregar edad cronológica formateada para el historial
+        resultados["edad_cronologica_texto"] = edad_cronologica_texto
+        
+        # También agregar edad corregida formateada para el historial
+        if paciente.es_prematuro:
+            resultados["edad_corregida_texto"] = self._format_age_from_days(
+                edad_corregida.edad_corregida_total_dias
+            )
 
         if edad_corregida.es_antes_de_termino:
             resultados["alertas"].append(
@@ -233,3 +250,71 @@ class MedicionController:
             info_parts.append("Prematuro")
 
         return " | ".join(info_parts)
+
+    def calcular_edad_corregida(self) -> None:
+        """Calcula y muestra la edad corregida para la fecha actual."""
+        try:
+            paciente = self.state.paciente_actual
+            if paciente is None:
+                raise ValueError("No hay paciente seleccionado")
+
+            # Usar la fecha del input de medición
+            assert self.view is not None
+            fecha_medicion = self.view.fecha_input.value
+
+            # Calcular edad corregida usando el servicio existente
+            edad_corregida = self.services.neonatal.calcular_edad_corregida_paciente(
+                paciente=paciente,
+                fecha_medicion=fecha_medicion,
+            )
+
+            # Formatear edades con el método existente
+            edad_cronologica_texto = self._format_age_from_days(
+                edad_corregida.edad_cronologica_dias
+            )
+            
+            edad_corregida_texto = self._format_age_from_days(
+                edad_corregida.edad_corregida_total_dias
+            )
+
+            resultado = {
+                "edad_cronologica_texto": edad_cronologica_texto,
+                "edad_corregida_texto": edad_corregida_texto,
+                "es_prematuro": paciente.es_prematuro,
+                "edad_cronologica_dias": edad_corregida.edad_cronologica_dias,
+                "edad_corregida_total_dias": edad_corregida.edad_corregida_total_dias,
+            }
+
+            if self.view:
+                self.view.show_edad_corregida(resultado)
+
+        except Exception as error:
+            if self.view:
+                self.view.show_error(f"Error al calcular edad: {error}")
+
+    def _format_age_from_days(self, total_days: int) -> str:
+        """Formatea días totales a texto legible con abreviaturas y semanas."""
+        if total_days < 0:
+            return "Antes de término"
+
+        if total_days < 30:
+            return f"{total_days}D"
+
+        months = total_days // 30
+        days = total_days % 30
+        
+        # Calcular semanas
+        weeks = total_days // 7
+        remaining_days = total_days % 7
+
+        if months < 12:
+            if days > 0:
+                return f"{months}M, {days}D ({weeks}S, {remaining_days}D)"
+            return f"{months}M ({weeks}S)"
+
+        years = months // 12
+        remaining_months = months % 12
+
+        if remaining_months > 0:
+            return f"{years}a, {remaining_months}M"
+        return f"{years}a"
