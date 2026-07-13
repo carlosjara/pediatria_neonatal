@@ -26,3 +26,110 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+
+
+# content below this line added by briefcase convert
+# This project was generated with 0.4.4 using template: https://github.com/beeware/briefcase-template @ v0.4.4
+[tool.briefcase]
+project_name = "Pediatría Neonatal"
+bundle = "com.carlosjara"
+version = "0.0.1"
+url = "https://github.com/carlosjara/pediatria_neonatal"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+author = "Carlos Jaramillo"
+author_email = "ceja0919@gmail.com"
+
+[tool.briefcase.app.pediatria-neonatal]
+formal_name = "Pediatría Neonatal"
+description = "Núcleo modular para cálculos pediátricos y neonatales."
+long_description = """More details about the app should go here.
+"""
+sources = [
+    "src/pediatria_neonatal",
+]
+test_sources = [
+    "tests",
+]
+
+requires = [
+    "toga==0.5.6",
+]
+test_requires = [
+    # Add your cross-platform test requirements here
+]
+
+[tool.briefcase.app.pediatria-neonatal.macOS]
+universal_build = true
+requires = [
+    # Add your macOS-specific app requirements here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux]
+requires = [
+    # Add your Linux-specific app requirements here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux.system.debian]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux.system.rhel]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux.system.suse]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux.system.arch]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.pediatria-neonatal.linux.flatpak]
+flatpak_runtime = "org.freedesktop.Platform"
+flatpak_runtime_version = "25.08"
+flatpak_sdk = "org.freedesktop.Sdk"
+
+[tool.briefcase.app.pediatria-neonatal.windows]
+requires = [
+    # Add your Windows-specific app requirements here
+]
+
+# Mobile deployments
+[tool.briefcase.app.pediatria-neonatal.iOS]
+requires = [
+    # Add your iOS-specific app requirements here
+]
+
+[tool.briefcase.app.pediatria-neonatal.android]
+requires = [
+    # Add your Android-specific app requirements here
+]
+
+# Web deployments
+[tool.briefcase.app.pediatria-neonatal.web]
+requires = [
+    # Add your web-specific app requirements here
+]
+
