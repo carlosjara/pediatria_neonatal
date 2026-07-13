@@ -23,6 +23,61 @@ COLOR_DANGER = "#DC2626"
 COLOR_MUTED = "#9CA3AF"
 COLOR_BACKGROUND = None
 
+# Colores clínicos para clasificaciones de crecimiento
+COLOR_SEVERE_UNDERWEIGHT = "#B91C1C"  # Rojo intenso - desnutrición severa
+COLOR_MODERATE_UNDERWEIGHT = "#EA580C"  # Naranja - bajo peso moderado
+COLOR_MILD_UNDERWEIGHT = "#F59E0B"  # Amarillo - bajo peso leve
+COLOR_NORMAL = "#16A34A"  # Verde - normal
+COLOR_OVERWEIGHT = "#D97706"  # Amarillo oscuro - sobrepeso
+COLOR_OBESITY = "#DC2626"  # Rojo - obesidad
+
+# Colores específicos para clasificaciones de prematuro
+COLOR_PREMATURE_EXTREME = "#7C3AED"  # Púrpura intenso para prematuro extremo
+COLOR_PREMATURE_VERY_PRETERM = "#A855F7"  # Púrpura para muy prematuro
+COLOR_PREMATURE_MODERATE = "#C084FC"  # Púrpura claro para prematuro moderado
+COLOR_PREMATURE_LATE = "#E9D5FF"  # Púrpura muy claro para prematuro tardío
+
+
+def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
+    """Devuelve el color clínico apropiado según clasificación y severidad."""
+    # Mapeo de clasificaciones a colores
+    color_map = {
+        # Bajo peso
+        "Desnutrición severa": COLOR_SEVERE_UNDERWEIGHT,
+        "Bajo peso severo": COLOR_SEVERE_UNDERWEIGHT,
+        "Bajo peso moderado": COLOR_MODERATE_UNDERWEIGHT,
+        "Bajo peso leve": COLOR_MILD_UNDERWEIGHT,
+        "Bajo peso": COLOR_MODERATE_UNDERWEIGHT,
+        "Normal bajo": COLOR_MILD_UNDERWEIGHT,
+        
+        # Normal
+        "Normal": COLOR_NORMAL,
+        "Eutrofia": COLOR_NORMAL,
+        
+        # Sobrepeso y obesidad
+        "Sobrepeso": COLOR_OVERWEIGHT,
+        "Obesidad": COLOR_OBESITY,
+        "Obesidad severa": COLOR_OBESITY,
+        
+        # Clasificaciones de prematuro
+        "Prematuro extremo": COLOR_PREMATURE_EXTREME,
+        "Prematuro muy precoz": COLOR_PREMATURE_VERY_PRETERM,
+        "Prematuro moderado": COLOR_PREMATURE_MODERATE,
+        "Prematuro tardío": COLOR_PREMATURE_LATE,
+    }
+    
+    # Si no encuentra la clasificación, usa el sistema de severidad anterior
+    if clasificacion not in color_map:
+        severity_map = {
+            "alta": COLOR_OBESITY,
+            "moderada": COLOR_MODERATE_UNDERWEIGHT,
+            "observacion": COLOR_WARNING,
+            "normal": COLOR_NORMAL,
+        }
+        return severity_map.get(severidad, COLOR_MUTED)
+    
+    return color_map.get(clasificacion, COLOR_NORMAL)
+
 
 def title(text: str) -> toga.Label:
     """Título principal de pantalla - grande y claro."""
@@ -151,7 +206,7 @@ def alert_box(
         style=Pack(
             direction=ROW,
             padding=SPACING_MD,
-            background_color=bg_map.get(severity),
+            # Remover background_color para que use el tema del sistema
         ),
     )
 
@@ -178,7 +233,7 @@ def badge(
             padding_bottom=SPACING_XS,
             padding_left=SPACING_SM,
             padding_right=SPACING_SM,
-            background_color=bg_color,
+            # Remover background_color para que use el tema del sistema
         ),
     )
 
@@ -540,7 +595,7 @@ def divider() -> toga.Box:
     return toga.Box(
         style=Pack(
             height=1,
-            background_color=COLOR_MUTED,
+            # Remover background_color para que use el tema del sistema
             padding_top=SPACING_MD,
             padding_bottom=SPACING_MD,
         ),

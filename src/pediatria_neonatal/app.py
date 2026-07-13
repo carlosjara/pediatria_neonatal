@@ -129,6 +129,7 @@ class PediatriaNeonatalApp(toga.App):
         """Muestra la calculadora de edad corregida."""
         self.navigator.show(self.edad_corregida_controller.build_view)
 
+    
     def build_home(self) -> toga.Widget:
         """Construye la pantalla de inicio."""
         return scroll_screen(

@@ -13,6 +13,7 @@ from pediatria_neonatal.views.components import (
     SPACING_SM,
     age_display,
     alert_box,
+    get_clinical_color,
     hero_value,
     info_row,
     patient_summary_card,
@@ -246,6 +247,22 @@ class ResultadoView:
             return f"{years}a, {remaining_months}M"
         return f"{years}a"
 
+    def _get_clinical_severity(self, clasificacion: str, severidad: str) -> str:
+        """Convierte clasificación y severidad a nivel de severidad para tarjetas."""
+        color = get_clinical_color(clasificacion, severidad)
+        
+        # Mapear colores a niveles de severidad para las tarjetas
+        color_to_severity = {
+            "#B91C1C": "alta",      # Desnutrición severa
+            "#DC2626": "alta",      # Obesidad
+            "#EA580C": "moderada",  # Bajo peso moderado
+            "#D97706": "observacion", # Sobrepeso
+            "#F59E0B": "observacion", # Bajo peso leve
+            "#16A34A": "normal",    # Normal
+        }
+        
+        return color_to_severity.get(color, "normal")
+
     def _build_result_cards(self, imc_data: dict) -> toga.Box:
         """Construye las tarjetas de resultados."""
         cards = []
@@ -261,13 +278,18 @@ class ResultadoView:
             )
 
         if "clasificacion" in imc_data:
-            severity = imc_data.get("severidad", "normal")
+            clasificacion = imc_data["clasificacion"]
+            severidad = imc_data.get("severidad", "normal")
+            
+            # Usar colores clínicos según clasificación
+            clinical_severity = self._get_clinical_severity(clasificacion, severidad)
+            
             cards.append(
                 result_card(
                     label="Clasificación",
-                    value=imc_data["clasificacion"],
+                    value=clasificacion,
                     detail=imc_data.get("descripcion", ""),
-                    severity=severity,
+                    severity=clinical_severity,
                 )
             )
 

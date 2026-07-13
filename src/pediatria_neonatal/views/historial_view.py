@@ -9,8 +9,6 @@ from toga.style.pack import COLUMN, ROW
 
 from pediatria_neonatal.views.components import (
     COLOR_MUTED,
-    COLOR_SUCCESS,
-    COLOR_WARNING,
     FONT_SIZE_BODY,
     FONT_SIZE_CAPTION,
     FONT_SIZE_SUBTITLE,
@@ -18,6 +16,7 @@ from pediatria_neonatal.views.components import (
     SPACING_SM,
     SPACING_XS,
     caption_text,
+    get_clinical_color,
     scroll_screen,
     title,
 )
@@ -29,10 +28,8 @@ class HistorialView:
     def __init__(
         self,
         mediciones: list[dict[str, Any]],
-        on_select: Callable | None = None,
     ) -> None:
         self.mediciones = mediciones
-        self.on_select = on_select
 
     def build(self) -> toga.Widget:
         """Construye la interfaz del historial."""
@@ -97,27 +94,24 @@ class HistorialView:
         )
 
     def _build_medicion_card(self, medicion: dict[str, Any]) -> toga.Box:
-        """Construye una tarjeta de medición."""
+        """Construye una tarjeta de medición con toda la información visible."""
         fecha = medicion.get("fecha", "")
         paciente = medicion.get("paciente_nombre", "Paciente")
         imc = medicion.get("imc", 0)
         clasificacion = medicion.get("clasificacion", "")
         severidad = medicion.get("severidad", "normal")
-
-        color_map = {
-            "normal": COLOR_SUCCESS,
-            "observacion": COLOR_WARNING,
-            "moderada": COLOR_WARNING,
-            "alta": "#DC2626",
-        }
-        color = color_map.get(severidad, COLOR_MUTED)
+        
+        # Usar colores clínicos según clasificación
+        color = get_clinical_color(clasificacion, severidad)
 
         # Extraer edad y edad corregida
         edad_texto = medicion.get("edad_texto", "")
         es_prematuro = medicion.get("es_prematuro", False)
         edad_corregida_texto = medicion.get("edad_corregida_texto", "")
+        clasificacion_prematuro = medicion.get("clasificacion_prematuro", "")
 
         children = [
+            # Nombre y fecha
             toga.Box(
                 children=[
                     toga.Label(
@@ -138,10 +132,45 @@ class HistorialView:
                 ],
                 style=Pack(direction=ROW, padding_bottom=SPACING_XS),
             ),
+            
+            # Edad
             toga.Label(
-                edad_texto,
+                f"Edad: {edad_texto}",
                 style=Pack(font_size=FONT_SIZE_CAPTION, color=COLOR_MUTED),
             ),
+            
+            # Edad corregida (solo si es prematuro)
+        ]
+
+        if es_prematuro and edad_corregida_texto:
+            children.append(
+                toga.Label(
+                    f"Edad corregida: {edad_corregida_texto}",
+                    style=Pack(
+                        font_size=FONT_SIZE_CAPTION,
+                        color=COLOR_MUTED,
+                        font_style="italic",
+                    ),
+                )
+            )
+
+        # Clasificación de prematuro
+        if clasificacion_prematuro:
+            # Usar colores clínicos para clasificación de prematuro
+            color_prematuro = get_clinical_color(clasificacion_prematuro)
+            children.append(
+                toga.Label(
+                    f"👶 {clasificacion_prematuro}",
+                    style=Pack(
+                        font_size=FONT_SIZE_CAPTION,
+                        color=color_prematuro,
+                        font_style="italic",
+                    ),
+                )
+            )
+
+        # IMC y clasificación
+        children.append(
             toga.Box(
                 children=[
                     toga.Label(
@@ -160,26 +189,15 @@ class HistorialView:
                         ),
                     ),
                 ],
-                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+                style=Pack(direction=ROW, padding_top=SPACING_XS),
             ),
-        ]
-
-        # Agregar edad corregida solo si es prematuro
-        if es_prematuro and edad_corregida_texto:
-            children.append(
-                toga.Label(
-                    f"Edad corregida: {edad_corregida_texto}",
-                    style=Pack(
-                        font_size=FONT_SIZE_CAPTION,
-                        color=COLOR_MUTED,
-                    ),
-                )
-            )
+        )
 
         return toga.Box(
             children=children,
             style=Pack(
                 direction=COLUMN,
                 padding=SPACING_MD,
+                # Remover background_color para que use el tema del sistema
             ),
         )

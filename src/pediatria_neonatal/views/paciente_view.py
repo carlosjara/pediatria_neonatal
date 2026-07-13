@@ -25,6 +25,10 @@ class PacienteView:
         self.on_calcular_edad = on_calcular_edad
         self.selected_sex = "Masculino"
 
+        # Botones de género para controlar estado presionado
+        self.masculino_button = None
+        self.femenino_button = None
+
         self.nombre_input = toga.TextInput(
             placeholder="Nombre completo",
             style=Pack(flex=1),
@@ -66,18 +70,25 @@ class PacienteView:
         )
 
     def build(self) -> toga.Widget:
+        # Crear botones de género
+        self.masculino_button = toga.Button(
+            "Masculino",
+            on_press=self.select_male,
+            style=Pack(flex=1, padding_right=5),
+        )
+        self.femenino_button = toga.Button(
+            "Femenino",
+            on_press=self.select_female,
+            style=Pack(flex=1, padding_left=5),
+        )
+        
+        # Establecer estado inicial
+        self.masculino_button.enabled = False  # Simula botón presionado
+        
         sex_row = toga.Box(
             children=[
-                toga.Button(
-                    "Masculino",
-                    on_press=self.select_male,
-                    style=Pack(flex=1, padding_right=5),
-                ),
-                toga.Button(
-                    "Femenino",
-                    on_press=self.select_female,
-                    style=Pack(flex=1, padding_left=5),
-                ),
+                self.masculino_button,
+                self.femenino_button,
             ],
             style=Pack(direction=ROW),
         )
@@ -127,12 +138,22 @@ class PacienteView:
         return scroll_screen(content)
 
     def select_male(self, widget: toga.Widget) -> None:
-        self.selected_sex = "Masculino"
-        self.message_label.text = "Sexo seleccionado: Masculino"
+        """Selecciona género masculino y actualiza estado de botones."""
+        if self.selected_sex != "Masculino":
+            self.selected_sex = "Masculino"
+            # Actualizar estado de botones
+            self.masculino_button.enabled = False  # Presionado
+            self.femenino_button.enabled = True   # No presionado
+            self.message_label.text = "Sexo seleccionado: Masculino"
 
     def select_female(self, widget: toga.Widget) -> None:
-        self.selected_sex = "Femenino"
-        self.message_label.text = "Sexo seleccionado: Femenino"
+        """Selecciona género femenino y actualiza estado de botones."""
+        if self.selected_sex != "Femenino":
+            self.selected_sex = "Femenino"
+            # Actualizar estado de botones
+            self.masculino_button.enabled = True   # No presionado
+            self.femenino_button.enabled = False  # Presionado
+            self.message_label.text = "Sexo seleccionado: Femenino"
 
     def submit(self, widget: toga.Widget) -> None:
         self.on_save(

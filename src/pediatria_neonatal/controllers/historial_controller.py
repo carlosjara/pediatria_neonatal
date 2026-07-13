@@ -19,11 +19,8 @@ class HistorialController:
 
         self.view = HistorialView(
             mediciones=mediciones,
-            on_select=self._on_select_medicion,
         )
 
         return self.view.build()
 
-    def _on_select_medicion(self, medicion: dict) -> None:
-        """Maneja la selección de una medición del historial."""
-        pass
+    

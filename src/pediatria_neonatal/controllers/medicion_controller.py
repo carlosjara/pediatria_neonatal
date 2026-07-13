@@ -128,6 +128,19 @@ class MedicionController:
             resultados["edad_corregida_texto"] = self._format_age_from_days(
                 edad_corregida.edad_corregida_total_dias
             )
+            
+            # Clasificación de prematuro tardío
+            semanas_gestacion = paciente.datos_neonatales.edad_gestacional_semanas
+            if semanas_gestacion >= 34 and semanas_gestacion < 37:
+                resultados["clasificacion_prematuro"] = "Prematuro tardío"
+            elif semanas_gestacion >= 32 and semanas_gestacion < 34:
+                resultados["clasificacion_prematuro"] = "Prematuro moderado"
+            elif semanas_gestacion >= 28 and semanas_gestacion < 32:
+                resultados["clasificacion_prematuro"] = "Prematuro muy precoz"
+            elif semanas_gestacion < 28:
+                resultados["clasificacion_prematuro"] = "Prematuro extremo"
+            else:
+                resultados["clasificacion_prematuro"] = "Término"
 
         if edad_corregida.es_antes_de_termino:
             resultados["alertas"].append(
