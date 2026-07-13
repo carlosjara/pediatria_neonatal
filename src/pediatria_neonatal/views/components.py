@@ -1,0 +1,593 @@
+"""Componentes visuales reutilizables con estilo descansado para médicos."""
+
+import toga
+from toga.style import Pack
+from toga.style.pack import CENTER, COLUMN, ROW
+
+SPACING_XS = 4
+SPACING_SM = 8
+SPACING_MD = 16
+SPACING_LG = 24
+SPACING_XL = 32
+
+FONT_SIZE_CAPTION = 11
+FONT_SIZE_BODY = 14
+FONT_SIZE_SUBTITLE = 16
+FONT_SIZE_TITLE = 22
+FONT_SIZE_HERO = 28
+
+COLOR_PRIMARY = "#2563EB"
+COLOR_SUCCESS = "#16A34A"
+COLOR_WARNING = "#D97706"
+COLOR_DANGER = "#DC2626"
+COLOR_MUTED = "#6B7280"
+COLOR_BACKGROUND = "#F9FAFB"
+
+
+def title(text: str) -> toga.Label:
+    """Título principal de pantalla - grande y claro."""
+    return toga.Label(
+        text,
+        style=Pack(
+            font_size=FONT_SIZE_TITLE,
+            font_weight="bold",
+            padding_bottom=SPACING_LG,
+        ),
+    )
+
+
+def subtitle(text: str) -> toga.Label:
+    """Subtítulo de sección - separación visual clara."""
+    return toga.Label(
+        text,
+        style=Pack(
+            font_size=FONT_SIZE_SUBTITLE,
+            font_weight="bold",
+            padding_top=SPACING_LG,
+            padding_bottom=SPACING_SM,
+        ),
+    )
+
+
+def field_label(text: str) -> toga.Label:
+    """Etiqueta de campo - legible y con espacio."""
+    return toga.Label(
+        text,
+        style=Pack(
+            font_size=FONT_SIZE_BODY,
+            padding_top=SPACING_MD,
+            padding_bottom=SPACING_XS,
+        ),
+    )
+
+
+def body_text(text: str, wrap: bool = True) -> toga.MultilineTextInput:
+    """Texto de cuerpo - lectura cómoda con wrap automático."""
+    if wrap:
+        widget = toga.MultilineTextInput(
+            value=text,
+            readonly=True,
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                padding_top=SPACING_XS,
+                padding_bottom=SPACING_XS,
+                flex=1,
+                height=60,
+            ),
+        )
+        return widget
+    return toga.Label(
+        text,
+        style=Pack(
+            font_size=FONT_SIZE_BODY,
+            padding_top=SPACING_XS,
+            padding_bottom=SPACING_XS,
+        ),
+    )
+
+
+def caption_text(text: str, color: str = COLOR_MUTED) -> toga.Label:
+    """Texto secundario - información complementaria."""
+    return toga.Label(
+        text,
+        style=Pack(
+            font_size=FONT_SIZE_CAPTION,
+            color=color,
+            padding_top=SPACING_XS,
+        ),
+    )
+
+
+def wrapped_text(text: str, height: int = 80) -> toga.MultilineTextInput:
+    """Texto largo con wrap automático - para descripciones."""
+    return toga.MultilineTextInput(
+        value=text,
+        readonly=True,
+        style=Pack(
+            font_size=FONT_SIZE_BODY,
+            padding_top=SPACING_SM,
+            padding_bottom=SPACING_SM,
+            flex=1,
+            height=height,
+        ),
+    )
+
+
+def alert_box(
+    text: str,
+    severity: str = "info",
+) -> toga.Box:
+    """Caja de alerta con color según severidad."""
+    color_map = {
+        "info": COLOR_PRIMARY,
+        "success": COLOR_SUCCESS,
+        "warning": COLOR_WARNING,
+        "danger": COLOR_DANGER,
+    }
+    bg_map = {
+        "info": "#EFF6FF",
+        "success": "#F0FDF4",
+        "warning": "#FFFBEB",
+        "danger": "#FEF2F2",
+    }
+    icon_map = {
+        "info": "ℹ️",
+        "success": "✅",
+        "warning": "⚠️",
+        "danger": "🚨",
+    }
+
+    return toga.Box(
+        children=[
+            toga.Label(
+                f"{icon_map.get(severity, '')} {text}",
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    color=color_map.get(severity, COLOR_MUTED),
+                    flex=1,
+                ),
+            ),
+        ],
+        style=Pack(
+            direction=ROW,
+            padding=SPACING_MD,
+            background_color=bg_map.get(severity, COLOR_BACKGROUND),
+        ),
+    )
+
+
+def badge(
+    text: str,
+    color: str = COLOR_PRIMARY,
+    bg_color: str = "#EFF6FF",
+) -> toga.Box:
+    """Badge/etiqueta pequeña para indicadores."""
+    return toga.Box(
+        children=[
+            toga.Label(
+                text,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    font_weight="bold",
+                    color=color,
+                ),
+            ),
+        ],
+        style=Pack(
+            padding_top=SPACING_XS,
+            padding_bottom=SPACING_XS,
+            padding_left=SPACING_SM,
+            padding_right=SPACING_SM,
+            background_color=bg_color,
+        ),
+    )
+
+
+def prematurity_badge(es_prematuro: bool, semanas: int = 0) -> toga.Box:
+    """Badge específico para indicar prematuridad."""
+    if not es_prematuro:
+        return badge("Término", COLOR_SUCCESS, "#F0FDF4")
+
+    if semanas < 28:
+        return badge("Prematuro extremo", COLOR_DANGER, "#FEF2F2")
+    elif semanas < 32:
+        return badge("Muy prematuro", COLOR_WARNING, "#FFFBEB")
+    elif semanas < 37:
+        return badge("Prematuro tardío", COLOR_WARNING, "#FFFBEB")
+    else:
+        return badge("Término", COLOR_SUCCESS, "#F0FDF4")
+
+
+def hero_value(value: str, unit: str = "") -> toga.Box:
+    """Valor destacado grande - para resultados principales."""
+    children = [
+        toga.Label(
+            value,
+            style=Pack(
+                font_size=FONT_SIZE_HERO,
+                font_weight="bold",
+                text_align=CENTER,
+            ),
+        ),
+    ]
+    if unit:
+        children.append(
+            toga.Label(
+                unit,
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    color=COLOR_MUTED,
+                    padding_left=SPACING_XS,
+                ),
+            ),
+        )
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=ROW,
+            alignment=CENTER,
+            padding_top=SPACING_SM,
+            padding_bottom=SPACING_SM,
+        ),
+    )
+
+
+def result_card(
+    label: str,
+    value: str,
+    detail: str = "",
+    severity: str = "normal",
+) -> toga.Box:
+    """Tarjeta de resultado clínico con indicador de severidad."""
+    color_map = {
+        "normal": COLOR_SUCCESS,
+        "observacion": COLOR_WARNING,
+        "moderada": COLOR_WARNING,
+        "alta": COLOR_DANGER,
+    }
+    bg_map = {
+        "normal": "#F0FDF4",
+        "observacion": "#FFFBEB",
+        "moderada": "#FFFBEB",
+        "alta": "#FEF2F2",
+    }
+    accent_color = color_map.get(severity, COLOR_MUTED)
+    bg_color = bg_map.get(severity, COLOR_BACKGROUND)
+
+    children = [
+        toga.Label(
+            label,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                color=COLOR_MUTED,
+            ),
+        ),
+        toga.Label(
+            value,
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                color=accent_color,
+                padding_top=SPACING_XS,
+            ),
+        ),
+    ]
+
+    if detail:
+        children.append(
+            toga.Label(
+                detail,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                    padding_top=SPACING_XS,
+                ),
+            ),
+        )
+
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            padding=SPACING_MD,
+            background_color=bg_color,
+            flex=1,
+        ),
+    )
+
+
+def section_header(title_text: str, subtitle_text: str = "") -> toga.Box:
+    """Encabezado de sección con título y subtítulo opcional."""
+    children = [
+        toga.Label(
+            title_text,
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+    ]
+
+    if subtitle_text:
+        children.append(
+            toga.Label(
+                subtitle_text,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                ),
+            ),
+        )
+
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            padding_top=SPACING_LG,
+            padding_bottom=SPACING_SM,
+        ),
+    )
+
+
+def patient_summary_card(
+    nombre: str,
+    edad_texto: str,
+    sexo: str,
+    es_prematuro: bool,
+    semanas_eg: int,
+    peso_nacer: float,
+) -> toga.Box:
+    """Tarjeta resumen del paciente para contexto clínico."""
+    children = [
+        toga.Box(
+            children=[
+                toga.Label(
+                    nombre,
+                    style=Pack(
+                        font_size=FONT_SIZE_SUBTITLE,
+                        font_weight="bold",
+                        flex=1,
+                    ),
+                ),
+                prematurity_badge(es_prematuro, semanas_eg),
+            ],
+            style=Pack(direction=ROW, padding_bottom=SPACING_SM),
+        ),
+        toga.Box(
+            children=[
+                toga.Label(
+                    f"Sexo: {sexo}",
+                    style=Pack(font_size=FONT_SIZE_BODY),
+                ),
+                toga.Box(style=Pack(flex=1)),
+                toga.Label(
+                    f"EG: {semanas_eg} sem",
+                    style=Pack(font_size=FONT_SIZE_BODY),
+                ),
+            ],
+            style=Pack(direction=ROW, padding_bottom=SPACING_SM),
+        ),
+        toga.Label(
+            f"Peso al nacer: {peso_nacer:.0f} g",
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                padding_bottom=SPACING_SM,
+            ),
+        ),
+    ]
+
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            padding=SPACING_MD,
+            background_color=COLOR_BACKGROUND,
+        ),
+    )
+
+
+def age_display(
+    edad_cronologica: str,
+    edad_corregida: str = "",
+    es_prematuro: bool = False,
+) -> toga.Box:
+    """Muestra prominente de edad cronológica y corregida."""
+    children = [
+        toga.Box(
+            children=[
+                toga.Label(
+                    "Edad cronológica:",
+                    style=Pack(
+                        font_size=FONT_SIZE_CAPTION,
+                        color=COLOR_MUTED,
+                    ),
+                ),
+                toga.Label(
+                    edad_cronologica,
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        padding_left=SPACING_SM,
+                    ),
+                ),
+            ],
+            style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+        ),
+    ]
+
+    if es_prematuro and edad_corregida:
+        es_antes_termino = "término" in edad_corregida.lower()
+        color_edad = COLOR_WARNING if es_antes_termino else COLOR_PRIMARY
+
+        children.append(
+            toga.Box(
+                children=[
+                    toga.Label(
+                        "Edad corregida:",
+                        style=Pack(
+                            font_size=FONT_SIZE_CAPTION,
+                            color=COLOR_MUTED,
+                        ),
+                    ),
+                    toga.Label(
+                        edad_corregida,
+                        style=Pack(
+                            font_size=FONT_SIZE_SUBTITLE,
+                            font_weight="bold",
+                            color=color_edad,
+                            padding_left=SPACING_SM,
+                        ),
+                    ),
+                ],
+                style=Pack(direction=ROW),
+            ),
+        )
+
+        if es_antes_termino:
+            mensaje = "⏳ Paciente aún en período neonatal pretérmino"
+        else:
+            mensaje = "📊 Se usa edad corregida para evaluación"
+
+        children.append(
+            toga.Label(
+                mensaje,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_WARNING if es_antes_termino else COLOR_PRIMARY,
+                    padding_top=SPACING_XS,
+                ),
+            ),
+        )
+
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            padding=SPACING_MD,
+            background_color="#EFF6FF",
+        ),
+    )
+
+
+def info_row(label: str, value: str) -> toga.Box:
+    """Fila de información label: value."""
+    return toga.Box(
+        children=[
+            toga.Label(
+                f"{label}:",
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    font_weight="bold",
+                    padding_right=SPACING_SM,
+                ),
+            ),
+            toga.Label(
+                value,
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    flex=1,
+                ),
+            ),
+        ],
+        style=Pack(
+            direction=ROW,
+            padding_top=SPACING_XS,
+            padding_bottom=SPACING_XS,
+        ),
+    )
+
+
+def primary_button(
+    text: str,
+    on_press: callable,
+) -> toga.Button:
+    """Botón principal - acción destacada."""
+    return toga.Button(
+        text,
+        on_press=on_press,
+        style=Pack(
+            padding_top=SPACING_LG,
+            padding_bottom=SPACING_SM,
+            font_size=FONT_SIZE_BODY,
+            font_weight="bold",
+        ),
+    )
+
+
+def secondary_button(
+    text: str,
+    on_press: callable,
+) -> toga.Button:
+    """Botón secundario - acción alternativa."""
+    return toga.Button(
+        text,
+        on_press=on_press,
+        style=Pack(
+            padding_top=SPACING_SM,
+            padding_bottom=SPACING_SM,
+            font_size=FONT_SIZE_BODY,
+        ),
+    )
+
+
+def spacer(size: int = SPACING_MD) -> toga.Box:
+    """Espaciador vertical."""
+    return toga.Box(style=Pack(height=size))
+
+
+def divider() -> toga.Box:
+    """Línea divisoria sutil."""
+    return toga.Box(
+        style=Pack(
+            height=1,
+            background_color=COLOR_MUTED,
+            padding_top=SPACING_MD,
+            padding_bottom=SPACING_MD,
+        ),
+    )
+
+
+def scroll_screen(content: toga.Widget) -> toga.ScrollContainer:
+    """Contenedor scrolleable para pantallas largas."""
+    return toga.ScrollContainer(
+        content=content,
+        horizontal=False,
+        style=Pack(flex=1),
+    )
+
+
+def screen_box(*children: toga.Widget) -> toga.Box:
+    """Contenedor principal de pantalla con padding generoso."""
+    return toga.Box(
+        children=list(children),
+        style=Pack(
+            direction=COLUMN,
+            padding=SPACING_LG,
+            flex=1,
+        ),
+    )
+
+
+def card_box(*children: toga.Widget) -> toga.Box:
+    """Tarjeta contenedora con fondo y padding."""
+    return toga.Box(
+        children=list(children),
+        style=Pack(
+            direction=COLUMN,
+            padding=SPACING_MD,
+            background_color=COLOR_BACKGROUND,
+        ),
+    )
+
+
+def row_box(*children: toga.Widget) -> toga.Box:
+    """Fila horizontal con espaciado."""
+    return toga.Box(
+        children=list(children),
+        style=Pack(
+            direction=ROW,
+            padding_top=SPACING_SM,
+            padding_bottom=SPACING_SM,
+        ),
+    )
