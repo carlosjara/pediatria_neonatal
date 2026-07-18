@@ -16,7 +16,6 @@ from pediatria_neonatal.resources.icons import get_icons
 from pediatria_neonatal.views.components import (
     SPACING_MD,
     SPACING_SM,
-    body_text,
     caption_text,
     field_label,
     primary_button,
@@ -24,6 +23,7 @@ from pediatria_neonatal.views.components import (
     secondary_button,
     subtitle,
     title,
+    wrapped_text,
 )
 
 
@@ -38,6 +38,8 @@ class PediatriaNeonatalApp(toga.App):
         self.workspace_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.result_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.history_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
+        self.result_view_state = None
+        self.history_snapshot_count = None
 
         self.navigator = Navigator(self.workspace_content)
         self._init_controllers()
@@ -136,7 +138,7 @@ class PediatriaNeonatalApp(toga.App):
 
         if not self.state.pacientes_sesion:
             rows.append(
-                body_text(
+                wrapped_text(
                     "Aún no hay pacientes evaluados. Registra un Nuevo Paciente "
                     "para habilitar Resultados e Historial.",
                     height=90,
@@ -218,6 +220,7 @@ class PediatriaNeonatalApp(toga.App):
 
         self.result_content.clear()
         self.result_content.add(self.result_controller.build_view())
+        self.result_view_state = "current"
 
     def _show_latest(self) -> None:
         """Abre el último resultado o muestra estado vacío."""
@@ -240,13 +243,16 @@ class PediatriaNeonatalApp(toga.App):
     def _render_empty_results(self) -> None:
         """Muestra estado vacío de resultados."""
 
+        if self.result_view_state == "empty":
+            return
+
         self.result_content.clear()
         self.result_content.add(
             scroll_screen(
                 toga.Box(
                     children=[
                         title("Resultados"),
-                        body_text(
+                        wrapped_text(
                             "Registro vacío. Crea un Nuevo Paciente y calcula "
                             "una medición para ver el resumen clínico.",
                             height=100,
@@ -257,12 +263,18 @@ class PediatriaNeonatalApp(toga.App):
                 )
             )
         )
+        self.result_view_state = "empty"
 
     def _refresh_history(self) -> None:
         """Reconstruye la vista del historial."""
 
+        current_count = len(self.state.historial_mediciones)
+        if self.history_snapshot_count == current_count:
+            return
+
         self.history_content.clear()
         self.history_content.add(self.historial_controller.build_view())
+        self.history_snapshot_count = current_count
 
     def _go_home(self) -> None:
         self.tabs.current_tab = 0
@@ -322,15 +334,7 @@ class PediatriaNeonatalApp(toga.App):
                             "Menú",
                             style=Pack(width=70, font_size=12, font_weight="bold"),
                         ),
-                        toga.Label(
-                            "Pediatría Neonatal",
-                            style=Pack(
-                                flex=1,
-                                font_size=16,
-                                font_weight="bold",
-                                text_align=CENTER,
-                            ),
-                        ),
+                        toga.Box(style=Pack(flex=1)),
                         toga.Label(
                             "🐝",
                             style=Pack(width=48, font_size=18, text_align=CENTER),
@@ -340,25 +344,17 @@ class PediatriaNeonatalApp(toga.App):
                 ),
                 toga.Box(
                     children=[
-                        toga.Button("Home", on_press=lambda w: self._go_home()),
-                        toga.Button("Nuevo", on_press=lambda w: self.show_patient()),
-                        toga.Button(
-                            "Resultados",
-                            on_press=lambda w: self._show_latest(),
-                        ),
+                        self._menu_button("Home", self._go_home),
+                        self._menu_button("Nuevo", self.show_patient),
+                        self._menu_button("Resultados", self._show_latest),
                     ],
                     style=Pack(direction=ROW, padding_bottom=SPACING_SM),
                 ),
                 toga.Box(
                     children=[
-                        toga.Button(
-                            "Historial",
-                            on_press=lambda w: self._go_to_history(),
-                        ),
-                        toga.Button(
-                            "Ajustes",
-                            on_press=lambda w: self._go_to_settings(),
-                        ),
+                        self._menu_button("Historial", self._go_to_history),
+                        self._menu_button("Ajustes", self._go_to_settings),
+                        toga.Box(style=Pack(flex=1)),
                     ],
                     style=Pack(direction=ROW),
                 ),
@@ -370,6 +366,13 @@ class PediatriaNeonatalApp(toga.App):
                 padding_left=SPACING_MD,
                 padding_right=SPACING_MD,
             ),
+        )
+
+    def _menu_button(self, text: str, action: callable) -> toga.Button:
+        return toga.Button(
+            text,
+            on_press=lambda widget: action(),
+            style=Pack(flex=1, padding_right=SPACING_SM),
         )
 
     def _open_settings(self, widget: toga.Widget) -> None:
