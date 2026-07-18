@@ -46,15 +46,15 @@ class CorrectedAgeCalculatorView:
             max=date.today(),
             style=Pack(flex=1),
         )
-        self.semanas_input = toga.Selection(
-            items=[str(value) for value in range(22, 43)],
-            value="32",
-            style=Pack(flex=1),
+        self.semanas_value = 32
+        self.dias_value = 0
+        self.semanas_label = toga.Label(
+            str(self.semanas_value),
+            style=Pack(font_size=18, font_weight="bold", text_align=CENTER, flex=1),
         )
-        self.dias_input = toga.Selection(
-            items=[str(value) for value in range(0, 7)],
-            value="0",
-            style=Pack(flex=1),
+        self.dias_label = toga.Label(
+            str(self.dias_value),
+            style=Pack(font_size=18, font_weight="bold", text_align=CENTER, flex=1),
         )
         self.result_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -71,9 +71,23 @@ class CorrectedAgeCalculatorView:
                 field_label("Edad gestacional al nacer"),
                 toga.Box(
                     children=[
-                        self._field_group("Semanas", self.semanas_input),
+                        self._field_group(
+                            "Semanas",
+                            self._stepper(
+                                self.decrement_weeks,
+                                self.semanas_label,
+                                self.increment_weeks,
+                            ),
+                        ),
                         toga.Box(style=Pack(width=SPACING_SM)),
-                        self._field_group("Días", self.dias_input),
+                        self._field_group(
+                            "Días",
+                            self._stepper(
+                                self.decrement_days,
+                                self.dias_label,
+                                self.increment_days,
+                            ),
+                        ),
                     ],
                     style=Pack(direction=ROW),
                 ),
@@ -96,6 +110,7 @@ class CorrectedAgeCalculatorView:
                     ],
                     style=Pack(direction=ROW, padding_top=SPACING_LG),
                 ),
+                toga.Box(style=Pack(height=220)),
             ],
             style=Pack(direction=COLUMN, padding=SPACING_MD),
         )
@@ -119,14 +134,39 @@ class CorrectedAgeCalculatorView:
             style=Pack(direction=COLUMN, flex=1),
         )
 
+    def _stepper(
+        self,
+        on_decrement: Callable[[toga.Widget], None],
+        value_label: toga.Label,
+        on_increment: Callable[[toga.Widget], None],
+    ) -> toga.Box:
+        """Control inline para evitar teclado y picker nativo."""
+
+        return toga.Box(
+            children=[
+                toga.Button(
+                    "-",
+                    on_press=on_decrement,
+                    style=Pack(width=44, padding_right=SPACING_SM),
+                ),
+                value_label,
+                toga.Button(
+                    "+",
+                    on_press=on_increment,
+                    style=Pack(width=44, padding_left=SPACING_SM),
+                ),
+            ],
+            style=Pack(direction=ROW),
+        )
+
     def calculate(self, widget: toga.Widget) -> None:
         """Solicita cálculo al controlador."""
 
         self.on_calculate(
             {
                 "fecha_nacimiento": self.fecha_nacimiento_input.value,
-                "eg_semanas": self.semanas_input.value,
-                "eg_dias": self.dias_input.value,
+                "eg_semanas": str(self.semanas_value),
+                "eg_dias": str(self.dias_value),
             }
         )
 
@@ -144,9 +184,40 @@ class CorrectedAgeCalculatorView:
         """Limpia formulario y resultado visible."""
 
         self.fecha_nacimiento_input.value = date.today()
-        self.semanas_input.value = "32"
-        self.dias_input.value = "0"
+        self.semanas_value = 32
+        self.dias_value = 0
+        self._refresh_stepper_labels()
         self.result_box.clear()
+
+    def decrement_weeks(self, widget: toga.Widget) -> None:
+        """Disminuye semanas gestacionales."""
+
+        self.semanas_value = max(22, self.semanas_value - 1)
+        self._refresh_stepper_labels()
+
+    def increment_weeks(self, widget: toga.Widget) -> None:
+        """Aumenta semanas gestacionales."""
+
+        self.semanas_value = min(42, self.semanas_value + 1)
+        self._refresh_stepper_labels()
+
+    def decrement_days(self, widget: toga.Widget) -> None:
+        """Disminuye días gestacionales."""
+
+        self.dias_value = max(0, self.dias_value - 1)
+        self._refresh_stepper_labels()
+
+    def increment_days(self, widget: toga.Widget) -> None:
+        """Aumenta días gestacionales."""
+
+        self.dias_value = min(6, self.dias_value + 1)
+        self._refresh_stepper_labels()
+
+    def _refresh_stepper_labels(self) -> None:
+        """Actualiza valores visibles de semanas y días."""
+
+        self.semanas_label.text = str(self.semanas_value)
+        self.dias_label.text = str(self.dias_value)
 
     def show_result(self, result: dict[str, Any]) -> None:
         """Muestra resultado del cálculo local."""
