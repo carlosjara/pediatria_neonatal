@@ -11,6 +11,7 @@ from pediatria_neonatal.presentation.resultados import (
     ResultsSummaryGrid,
     semantic_color_for_classification,
 )
+from pediatria_neonatal.presentation.oms_chart import build_oms_chart_model
 from pediatria_neonatal.views.components import (
     SPACING_LG,
     SPACING_MD,
@@ -30,6 +31,7 @@ from pediatria_neonatal.views.components import (
     wrapped_text,
     zscore_chart,
 )
+from pediatria_neonatal.views.oms_chart import oms_curve_chart
 
 
 class ResultadoView:
@@ -220,11 +222,11 @@ class ResultadoView:
         interpretation_lines = []
         chart_children = []
 
-        for item in indicadores.values():
+        for key, item in indicadores.items():
             interpretation_lines.append(
                 f"{item['nombre']}: {item['clasificacion']}. {item['interpretacion']}"
             )
-            chart_children.append(self._build_zscore_chart(item))
+            chart_children.append(self._build_indicator_chart(key, item))
 
         grafica_content = toga.Box(
             children=chart_children,
@@ -426,6 +428,22 @@ class ResultadoView:
             classification=str(item.get("clasificacion") or ""),
             color=color,
         )
+
+    def _build_indicator_chart(self, key: str, item: dict[str, Any]) -> toga.Box:
+        """Construye una curva OMS si aplica, o usa respaldo por z-score."""
+
+        oms = self.resultados.get("oms2006", {})
+        chart_model = build_oms_chart_model(
+            indicator_key=key,
+            indicator=item,
+            sex=self.paciente_data.get("sexo", ""),
+            age_days=oms.get("edad_usada_dias"),
+        )
+
+        if chart_model is None:
+            return self._build_zscore_chart(item)
+
+        return oms_curve_chart(chart_model)
 
     def _filtered_indicators(
         self,
