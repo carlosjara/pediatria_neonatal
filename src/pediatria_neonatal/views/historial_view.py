@@ -32,7 +32,7 @@ class HistorialView:
 
     def build(self) -> toga.Widget:
         """Construye la interfaz del historial."""
-        children = [title("Historial de Mediciones")]
+        children = [title("Resumen P.")]
 
         if not self.mediciones:
             children.append(self._build_empty_state())

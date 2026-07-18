@@ -85,6 +85,7 @@ class ResultadoView:
     def _render_detail(self) -> None:
         """Muestra la vista detallada actual con ajustes mínimos para móvil."""
         children = [title("Resultados")]
+        children.append(secondary_button("Ver resumen", self._back_to_summary))
 
         children.append(self._build_patient_summary())
 
