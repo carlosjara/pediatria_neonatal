@@ -470,6 +470,12 @@ class ResultadoView:
         self.selected_indicator_key = None
         self._render_summary()
 
+    def show_summary(self) -> None:
+        """Regresa al resumen desde un control externo de navegación."""
+
+        self.selected_indicator_key = None
+        self._render_summary()
+
     def _new_measurement(self, widget: toga.Widget) -> None:
         """Inicia una nueva medición."""
         self.on_new_measurement()

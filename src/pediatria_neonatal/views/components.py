@@ -190,12 +190,14 @@ def alert_box(
 
     return toga.Box(
         children=[
-            toga.Label(
-                f"{icon_map.get(severity, '')} {text}",
+            toga.MultilineTextInput(
+                value=f"{icon_map.get(severity, '')} {text}",
+                readonly=True,
                 style=Pack(
                     font_size=FONT_SIZE_BODY,
                     color=color_map.get(severity, COLOR_MUTED),
                     flex=1,
+                    height=64,
                 ),
             ),
         ],

@@ -1,4 +1,5 @@
 import toga
+from datetime import datetime
 from toga.style import Pack
 from toga.style.pack import CENTER, COLUMN, ROW
 
@@ -16,8 +17,7 @@ from pediatria_neonatal.resources.icons import get_icons
 from pediatria_neonatal.views.components import (
     SPACING_MD,
     SPACING_SM,
-    caption_text,
-    field_label,
+    SPACING_XS,
     primary_button,
     scroll_screen,
     secondary_button,
@@ -35,22 +35,25 @@ class PediatriaNeonatalApp(toga.App):
         self.services = create_service_context()
         self.icons = get_icons()
 
-        self.workspace_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
+        self.home_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
+        self.patient_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.result_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.history_content = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.result_view_state = None
         self.history_snapshot_count = None
 
-        self.navigator = Navigator(self.workspace_content)
+        self.navigator = Navigator(self.patient_content)
         self._init_controllers()
 
-        self.workspace_shell = self._section_shell(self.workspace_content)
+        self.home_shell = self._section_shell(self.home_content)
+        self.patient_shell = self._section_shell(self.patient_content)
         self.result_shell = self._section_shell(self.result_content)
         self.history_shell = self._section_shell(self.history_content)
 
         self.tabs = toga.OptionContainer(
             content=[
-                toga.OptionItem("Nuevo", self.workspace_shell, icon=self.icons.baby),
+                toga.OptionItem("Home", self.home_shell, icon=self.icons.home),
+                toga.OptionItem("Nuevo", self.patient_shell, icon=self.icons.baby),
                 toga.OptionItem(
                     "Resultados",
                     self.result_shell,
@@ -65,12 +68,14 @@ class PediatriaNeonatalApp(toga.App):
             on_select=self._on_tab_change,
         )
 
-        self.show_patient()
+        self._render_home()
         self._render_empty_results()
         self._refresh_history()
 
         self.main_window.content = self.tabs
         self.main_window.show()
+        self.tabs.current_tab = "Home"
+        self._render_home()
 
     def _init_controllers(self) -> None:
         """Inicializa los controladores con sus callbacks."""
@@ -96,61 +101,83 @@ class PediatriaNeonatalApp(toga.App):
             state=self.state,
             on_back=self.show_patient,
         )
-        self.historial_controller = HistorialController(state=self.state)
+        self.historial_controller = HistorialController(
+            state=self.state,
+            on_select_result=self._show_patient_result,
+        )
 
     def show_patient(self) -> None:
         """Muestra la pantalla de registro de paciente."""
 
-        self.tabs.current_tab = 0 if hasattr(self, "tabs") else None
+        self.tabs.current_tab = 1 if hasattr(self, "tabs") else None
         self.navigator.show(self.patient_controller.build_view)
 
     def show_measurement(self) -> None:
         """Muestra la pantalla de medición antropométrica."""
 
-        self.tabs.current_tab = 0
+        self.tabs.current_tab = 1
         self.navigator.show(self.measurement_controller.build_view)
 
     def show_results(self) -> None:
         """Muestra la pantalla de resultados."""
 
-        self.tabs.current_tab = 1
+        self.tabs.current_tab = 2
         self._refresh_history()
         self._show_current_results()
 
     def show_edad_corregida(self) -> None:
         """Muestra la calculadora de edad corregida."""
 
-        self.tabs.current_tab = 0
+        self.tabs.current_tab = 1
         self.navigator.show(self.edad_corregida_controller.build_view)
 
     def build_home(self) -> toga.Widget:
         """Construye la pantalla Home accesible desde el menú textual."""
 
+        now = datetime.now()
+        patient_count = len(self.state.pacientes_sesion)
+        average_imc = self._average_session_imc()
+        average_text = f"{average_imc:.2f} kg/m²" if average_imc is not None else "--"
+
         rows = [
             title("Home"),
             subtitle("Hola, Dra. Vanessa Jaramillo"),
-            caption_text(
-                "Sesión temporal activa. En la próxima versión se agregará "
-                "manejo de sesiones con base de datos local persistida."
+            toga.Label(
+                now.strftime("%H:%M"),
+                style=Pack(
+                    font_size=36,
+                    font_weight="bold",
+                    text_align=CENTER,
+                    padding_top=SPACING_SM,
+                    padding_bottom=SPACING_XS,
+                ),
             ),
-            subtitle("Pacientes registrados"),
+            toga.Label(
+                now.strftime("%d/%m/%Y"),
+                style=Pack(
+                    font_size=16,
+                    text_align=CENTER,
+                    color="#6B7280",
+                    padding_bottom=SPACING_MD,
+                ),
+            ),
+            subtitle("Sesión actual"),
+            self._session_metric_row("Pacientes registrados", str(patient_count)),
+            self._session_metric_row("IMC promedio", average_text),
+            toga.Label(
+                "Sesión temporal activa",
+                style=Pack(
+                    font_size=14,
+                    color="#6B7280",
+                    padding_top=SPACING_SM,
+                    padding_bottom=SPACING_MD,
+                ),
+            ),
         ]
-
-        if not self.state.pacientes_sesion:
-            rows.append(
-                wrapped_text(
-                    "Aún no hay pacientes evaluados. Registra un Nuevo Paciente "
-                    "para habilitar Resultados e Historial.",
-                    height=90,
-                )
-            )
-        else:
-            for index, paciente in enumerate(self.state.pacientes_sesion):
-                rows.append(self._patient_session_row(index, paciente))
 
         rows.extend(
             [
-                primary_button("Nuevo paciente", lambda w: self.show_patient()),
+                primary_button("Nuevo paciente", lambda widget: self.show_patient()),
                 secondary_button("Ver resultados", lambda w: self._show_latest()),
                 secondary_button("Ver historial", lambda w: self._go_to_history()),
             ]
@@ -209,7 +236,11 @@ class PediatriaNeonatalApp(toga.App):
     def _on_tab_change(self, widget: toga.OptionContainer) -> None:
         """Actualiza contenido cuando cambia el tab inferior."""
 
-        if widget.current_tab.text == "Resultados":
+        if widget.current_tab.text == "Home":
+            self._render_home()
+        elif widget.current_tab.text == "Nuevo":
+            self._render_patient_if_needed()
+        elif widget.current_tab.text == "Resultados":
             if not self.state.resultados_actuales:
                 self._render_empty_results()
         elif widget.current_tab.text == "Historial":
@@ -225,7 +256,7 @@ class PediatriaNeonatalApp(toga.App):
     def _show_latest(self) -> None:
         """Abre el último resultado o muestra estado vacío."""
 
-        self.tabs.current_tab = 1
+        self.tabs.current_tab = 2
         if self.state.seleccionar_ultimo_resultado():
             self._show_current_results()
         else:
@@ -234,7 +265,7 @@ class PediatriaNeonatalApp(toga.App):
     def _show_patient_result(self, index: int) -> None:
         """Abre el resultado de un paciente de la sesión."""
 
-        self.tabs.current_tab = 1
+        self.tabs.current_tab = 2
         if self.state.seleccionar_registro_sesion(index):
             self._show_current_results()
         else:
@@ -278,39 +309,49 @@ class PediatriaNeonatalApp(toga.App):
 
     def _go_home(self) -> None:
         self.tabs.current_tab = 0
-        self.workspace_content.clear()
-        self.workspace_content.add(self.build_home())
+        self._render_home()
 
     def _go_to_history(self) -> None:
-        self.tabs.current_tab = 2
+        self.tabs.current_tab = 3
         self._refresh_history()
 
     def _go_to_settings(self) -> None:
         self.tabs.current_tab = 0
-        self.workspace_content.clear()
-        self.workspace_content.add(self.build_settings())
+        self.home_content.clear()
+        self.home_content.add(self.build_settings())
 
-    def _patient_session_row(self, index: int, paciente: dict) -> toga.Box:
-        edad = paciente.get("edad", "")
-        corregida = paciente.get("edad_corregida", "")
-        edad_texto = f"Edad: {edad}"
-        if corregida:
-            edad_texto = f"{edad_texto} · Corregida: {corregida}"
+    def _render_home(self) -> None:
+        self.home_content.clear()
+        self.home_content.add(self.build_home())
 
+    def _render_patient_if_needed(self) -> None:
+        if not self.patient_content.children:
+            self.navigator.show(self.patient_controller.build_view)
+
+    def _average_session_imc(self) -> float | None:
+        values = [
+            float(item["imc"])
+            for item in self.state.pacientes_sesion
+            if item.get("imc") is not None
+        ]
+        if not values:
+            return None
+        return sum(values) / len(values)
+
+    def _session_metric_row(self, label: str, value: str) -> toga.Box:
         return toga.Box(
             children=[
-                field_label(str(paciente.get("nombre") or "Paciente")),
-                caption_text(edad_texto),
-                toga.Button(
-                    "Ver resultado",
-                    on_press=lambda w, item_index=index: self._show_patient_result(
-                        item_index
-                    ),
-                    style=Pack(padding_top=SPACING_SM, padding_bottom=SPACING_SM),
+                toga.Label(
+                    label,
+                    style=Pack(font_size=14, color="#6B7280", flex=1),
+                ),
+                toga.Label(
+                    value,
+                    style=Pack(font_size=18, font_weight="bold", text_align=CENTER),
                 ),
             ],
             style=Pack(
-                direction=COLUMN,
+                direction=ROW,
                 padding_top=SPACING_SM,
                 padding_bottom=SPACING_SM,
             ),
@@ -326,14 +367,49 @@ class PediatriaNeonatalApp(toga.App):
         )
 
     def _banner(self) -> toga.Box:
+        menu_content = toga.Box(style=Pack(direction=COLUMN))
+        menu_button = toga.Button(
+            "☰ Menú",
+            style=Pack(width=92, font_size=12),
+        )
+
+        def toggle_menu(widget: toga.Widget) -> None:
+            if menu_content.children:
+                menu_content.clear()
+                menu_button.text = "☰ Menú"
+                return
+
+            menu_button.text = "Cerrar"
+            menu_content.add(
+                self._menu_row(
+                    ("Home", self._go_home),
+                    ("Nuevo", self.show_patient),
+                )
+            )
+            menu_content.add(
+                self._menu_row(
+                    ("Resultados", self._show_latest),
+                    ("Historial", self._go_to_history),
+                )
+            )
+            current = self.tabs.current_tab.text if hasattr(self, "tabs") else ""
+            if current == "Resultados":
+                menu_content.add(
+                    self._menu_row(
+                        ("Ver resumen", self._show_results_summary),
+                        ("Ajustes", self._go_to_settings),
+                    )
+                )
+            else:
+                menu_content.add(self._menu_row(("Ajustes", self._go_to_settings)))
+
+        menu_button.on_press = toggle_menu
+
         return toga.Box(
             children=[
                 toga.Box(
                     children=[
-                        toga.Label(
-                            "Menú",
-                            style=Pack(width=70, font_size=12, font_weight="bold"),
-                        ),
+                        menu_button,
                         toga.Box(style=Pack(flex=1)),
                         toga.Label(
                             "🐝",
@@ -342,22 +418,7 @@ class PediatriaNeonatalApp(toga.App):
                     ],
                     style=Pack(direction=ROW, padding_bottom=SPACING_SM),
                 ),
-                toga.Box(
-                    children=[
-                        self._menu_button("Home", self._go_home),
-                        self._menu_button("Nuevo", self.show_patient),
-                        self._menu_button("Resultados", self._show_latest),
-                    ],
-                    style=Pack(direction=ROW, padding_bottom=SPACING_SM),
-                ),
-                toga.Box(
-                    children=[
-                        self._menu_button("Historial", self._go_to_history),
-                        self._menu_button("Ajustes", self._go_to_settings),
-                        toga.Box(style=Pack(flex=1)),
-                    ],
-                    style=Pack(direction=ROW),
-                ),
+                menu_content,
             ],
             style=Pack(
                 direction=COLUMN,
@@ -368,12 +429,26 @@ class PediatriaNeonatalApp(toga.App):
             ),
         )
 
+    def _menu_row(self, *items: tuple[str, callable]) -> toga.Box:
+        children = [self._menu_button(label, action) for label, action in items]
+        while len(children) < 2:
+            children.append(toga.Box(style=Pack(flex=1)))
+        return toga.Box(
+            children=children,
+            style=Pack(direction=ROW, padding_bottom=SPACING_SM),
+        )
+
     def _menu_button(self, text: str, action: callable) -> toga.Button:
         return toga.Button(
             text,
             on_press=lambda widget: action(),
             style=Pack(flex=1, padding_right=SPACING_SM),
         )
+
+    def _show_results_summary(self) -> None:
+        view = self.result_controller.view
+        if view is not None:
+            view.show_summary()
 
     def _open_settings(self, widget: toga.Widget) -> None:
         """Abre los ajustes del sistema."""
