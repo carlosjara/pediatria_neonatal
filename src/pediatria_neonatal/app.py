@@ -373,21 +373,47 @@ class PediatriaNeonatalApp(toga.App):
             style=Pack(width=92, font_size=12),
         )
 
+        def close_menu() -> None:
+            menu_content.clear()
+            menu_button.text = "☰ Menú"
+
+        def menu_action(action: callable) -> callable:
+            def wrapped(widget: toga.Widget) -> None:
+                close_menu()
+                action()
+
+            return wrapped
+
+        def menu_row(*items: tuple[str, callable]) -> toga.Box:
+            children = [
+                toga.Button(
+                    label,
+                    on_press=menu_action(action),
+                    style=Pack(flex=1, padding_right=SPACING_SM),
+                )
+                for label, action in items
+            ]
+            while len(children) < 2:
+                children.append(toga.Box(style=Pack(flex=1)))
+            return toga.Box(
+                children=children,
+                style=Pack(direction=ROW, padding_bottom=SPACING_SM),
+            )
+
         def toggle_menu(widget: toga.Widget) -> None:
             if menu_content.children:
-                menu_content.clear()
-                menu_button.text = "☰ Menú"
+                close_menu()
                 return
 
             menu_button.text = "Cerrar"
             menu_content.add(
-                self._menu_row(
+                menu_row(
                     ("Home", self._go_home),
                     ("Nuevo", self.show_patient),
                 )
             )
             menu_content.add(
-                self._menu_row(
+                menu_row(
                     ("Resultados", self._show_latest),
                     ("Historial", self._go_to_history),
                 )
@@ -395,13 +421,13 @@ class PediatriaNeonatalApp(toga.App):
             current = self.tabs.current_tab.text if hasattr(self, "tabs") else ""
             if current == "Resultados":
                 menu_content.add(
-                    self._menu_row(
+                    menu_row(
                         ("Ver resumen", self._show_results_summary),
                         ("Ajustes", self._go_to_settings),
                     )
                 )
             else:
-                menu_content.add(self._menu_row(("Ajustes", self._go_to_settings)))
+                menu_content.add(menu_row(("Ajustes", self._go_to_settings)))
 
         menu_button.on_press = toggle_menu
 
@@ -427,22 +453,6 @@ class PediatriaNeonatalApp(toga.App):
                 padding_left=SPACING_MD,
                 padding_right=SPACING_MD,
             ),
-        )
-
-    def _menu_row(self, *items: tuple[str, callable]) -> toga.Box:
-        children = [self._menu_button(label, action) for label, action in items]
-        while len(children) < 2:
-            children.append(toga.Box(style=Pack(flex=1)))
-        return toga.Box(
-            children=children,
-            style=Pack(direction=ROW, padding_bottom=SPACING_SM),
-        )
-
-    def _menu_button(self, text: str, action: callable) -> toga.Button:
-        return toga.Button(
-            text,
-            on_press=lambda widget: action(),
-            style=Pack(flex=1, padding_right=SPACING_SM),
         )
 
     def _show_results_summary(self) -> None:

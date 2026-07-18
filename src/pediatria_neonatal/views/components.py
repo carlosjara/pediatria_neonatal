@@ -47,14 +47,14 @@ COLOR_PREMATURE_LATE = "#E9D5FF"  # Púrpura muy claro para prematuro tardío
 def _soft_background_for_color(color: str) -> str:
     """Color pastel estable para resaltar resultados clínicos."""
     color_map = {
-        COLOR_SUCCESS: "#DCFCE7",
-        COLOR_NORMAL: "#DCFCE7",
-        COLOR_WARNING: "#FEF3C7",
-        COLOR_OVERWEIGHT: "#FEF3C7",
-        COLOR_DANGER: "#FEE2E2",
-        COLOR_OBESITY: "#FEE2E2",
-        "#1D4ED8": "#DBEAFE",
-        COLOR_MUTED: "#F3F4F6",
+        COLOR_SUCCESS: "#EAF8EF",
+        COLOR_NORMAL: "#EAF8EF",
+        COLOR_WARNING: "#FFF7D6",
+        COLOR_OVERWEIGHT: "#FFF4CC",
+        COLOR_DANGER: "#FDECEC",
+        COLOR_OBESITY: "#FDECEC",
+        "#1D4ED8": "#EAF2FF",
+        COLOR_MUTED: "#F8FAFC",
     }
     return color_map.get(color, "#F3F4F6")
 
@@ -80,6 +80,34 @@ def _soft_row_panel(children: list[toga.Widget], background: str) -> toga.Box:
             padding=SPACING_SM,
         ),
     )
+
+
+def _centered_soft_panel(
+    children: list[toga.Widget],
+    background: str,
+    width: int,
+    direction: str = COLUMN,
+) -> toga.Box:
+    return toga.Box(
+        children=[
+            toga.Box(style=Pack(flex=1)),
+            toga.Box(
+                children=children,
+                style=Pack(
+                    direction=direction,
+                    background_color=background,
+                    padding=SPACING_SM,
+                    width=width,
+                ),
+            ),
+            toga.Box(style=Pack(flex=1)),
+        ],
+        style=Pack(direction=ROW),
+    )
+
+
+def _text_badge_width(text: str, minimum: int = 132, maximum: int = 280) -> int:
+    return min(max(len(text) * 12 + 36, minimum), maximum)
 
 
 def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
@@ -505,7 +533,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
             ),
         ),
         toga.Box(style=Pack(height=SPACING_SM)),
-        _soft_row_panel(
+        _centered_soft_panel(
             [
                 toga.Label(
                     f"{result.z_score_text} (Z-score)",
@@ -527,6 +555,8 @@ def main_result_card(result: MainResultCard) -> toga.Box:
                 ),
             ],
             background=semantic_background,
+            width=320,
+            direction=ROW,
         ),
         toga.Box(style=Pack(height=SPACING_SM)),
         toga.Label(
@@ -538,7 +568,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
                 padding_bottom=SPACING_XS,
             ),
         ),
-        _soft_panel(
+        _centered_soft_panel(
             [
                 toga.Label(
                     result.classification_text,
@@ -551,6 +581,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
                 ),
             ],
             background=semantic_background,
+            width=_text_badge_width(result.classification_text),
         ),
     ]
 
