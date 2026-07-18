@@ -147,8 +147,7 @@ class PediatriaNeonatalApp(toga.App):
         average_text = f"{average_imc:.2f} kg/m²" if average_imc is not None else "--"
 
         rows = [
-            title("Home"),
-            subtitle("Hola, Dra. Vanessa Jaramillo"),
+            title("Hola, Dra. Vanessa Jaramillo"),
             toga.Label(
                 now.strftime("%H:%M"),
                 style=Pack(
