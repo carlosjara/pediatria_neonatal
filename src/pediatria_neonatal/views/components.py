@@ -27,7 +27,6 @@ COLOR_WARNING = "#D97706"
 COLOR_DANGER = "#DC2626"
 COLOR_MUTED = "#9CA3AF"
 COLOR_BACKGROUND = None
-COLOR_CARD_BORDER = "#E5E7EB"
 COLOR_CARD_SOFT = "#F8FAFC"
 
 # Colores clínicos para clasificaciones de crecimiento
@@ -67,7 +66,7 @@ def _soft_panel(children: list[toga.Widget], background: str = COLOR_CARD_SOFT):
         style=Pack(
             direction=COLUMN,
             background_color=background,
-            padding=SPACING_MD,
+            padding=SPACING_SM,
         ),
     )
 
@@ -495,18 +494,15 @@ def main_result_card(result: MainResultCard) -> toga.Box:
                 padding_bottom=SPACING_SM,
             ),
         ),
-        _soft_panel(
-            [
-                toga.Label(
-                    f"{result.value_text} {result.unit}",
-                    style=Pack(
-                        font_size=FONT_SIZE_HERO,
-                        font_weight="bold",
-                        text_align=CENTER,
-                    ),
-                ),
-            ],
-            background="#FFFFFF",
+        toga.Label(
+            f"{result.value_text} {result.unit}",
+            style=Pack(
+                font_size=FONT_SIZE_HERO,
+                font_weight="bold",
+                text_align=CENTER,
+                padding_top=SPACING_SM,
+                padding_bottom=SPACING_SM,
+            ),
         ),
         toga.Box(style=Pack(height=SPACING_SM)),
         _soft_row_panel(
@@ -559,18 +555,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
     ]
 
     return toga.Box(
-        children=[
-            toga.Box(
-                children=[
-                    _soft_panel(content, background=COLOR_CARD_SOFT),
-                ],
-                style=Pack(
-                    direction=COLUMN,
-                    background_color=COLOR_CARD_BORDER,
-                    padding=1,
-                ),
-            )
-        ],
+        children=[_soft_panel(content, background="#FFFFFF")],
         style=Pack(
             direction=COLUMN,
             padding_top=SPACING_SM,
@@ -636,23 +621,12 @@ def indicator_summary_card(
     ]
 
     return toga.Box(
-        children=[
-            toga.Box(
-                children=[_soft_panel(content, background=background)],
-                style=Pack(
-                    direction=COLUMN,
-                    background_color=COLOR_CARD_BORDER,
-                    padding=1,
-                    flex=1,
-                    height=132,
-                ),
-            ),
-        ],
+        children=[_soft_panel(content, background=background)],
         style=Pack(
             direction=COLUMN,
             flex=1,
             height=132,
-            padding=SPACING_SM,
+            padding=SPACING_XS,
         ),
     )
 
