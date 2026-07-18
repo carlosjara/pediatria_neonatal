@@ -26,6 +26,7 @@ COLOR_SUCCESS = "#16A34A"
 COLOR_WARNING = "#D97706"
 COLOR_DANGER = "#DC2626"
 COLOR_MUTED = "#9CA3AF"
+COLOR_TEXT_ON_LIGHT = "#111827"
 COLOR_BACKGROUND = None
 COLOR_CARD_SOFT = "#F8FAFC"
 
@@ -510,6 +511,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
             style=Pack(
                 font_size=FONT_SIZE_SUBTITLE,
                 font_weight="bold",
+                color=COLOR_TEXT_ON_LIGHT,
                 text_align=CENTER,
             ),
         ),
@@ -518,6 +520,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
             style=Pack(
                 font_size=FONT_SIZE_SUBTITLE,
                 font_weight="bold",
+                color=COLOR_TEXT_ON_LIGHT,
                 text_align=CENTER,
                 padding_bottom=SPACING_SM,
             ),
@@ -527,6 +530,7 @@ def main_result_card(result: MainResultCard) -> toga.Box:
             style=Pack(
                 font_size=FONT_SIZE_HERO,
                 font_weight="bold",
+                color=COLOR_TEXT_ON_LIGHT,
                 text_align=CENTER,
                 padding_top=SPACING_SM,
                 padding_bottom=SPACING_SM,
