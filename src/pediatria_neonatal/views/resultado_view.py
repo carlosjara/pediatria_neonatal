@@ -5,7 +5,7 @@ from typing import Any
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN
+from toga.style.pack import COLUMN, ROW
 
 from pediatria_neonatal.presentation.resultados import (
     ResultsSummaryGrid,
@@ -14,6 +14,8 @@ from pediatria_neonatal.presentation.resultados import (
 from pediatria_neonatal.views.components import (
     SPACING_LG,
     SPACING_MD,
+    SPACING_SM,
+    SPACING_XS,
     age_display,
     alert_box,
     info_row,
@@ -214,20 +216,10 @@ class ResultadoView:
 
         oms = self.resultados.get("oms2006", {})
         indicadores = self._filtered_indicators(oms.get("indicadores", {}))
-        audit_lines = []
         interpretation_lines = []
         chart_children = []
 
         for item in indicadores.values():
-            audit = item.get("auditoria", {})
-            audit_lines.append(
-                f"{item['nombre']}\n"
-                f"Valor: {item['valor']:.2f} {item['unidad']}\n"
-                f"L={audit.get('L'):.4f}  M={audit.get('M'):.4f}  "
-                f"S={audit.get('S'):.5f}\n"
-                f"Z={item['z_score']:+.2f}  Percentil={item['percentil']:.1f}\n"
-                f"Fuente: {audit.get('fuente')}\n"
-            )
             interpretation_lines.append(
                 f"{item['nombre']}: {item['clasificacion']}. {item['interpretacion']}"
             )
@@ -238,12 +230,12 @@ class ResultadoView:
             style=Pack(direction=COLUMN),
         )
         grafica = scroll_screen(grafica_content)
-        tabla = toga.Box(
-            children=[wrapped_text("\n".join(audit_lines), height=220)],
-            style=Pack(direction=COLUMN, padding=SPACING_MD),
-        )
+        tabla = self._build_audit_table(indicadores)
         interpretacion = toga.Box(
-            children=[wrapped_text("\n\n".join(interpretation_lines), height=220)],
+            children=[
+                wrapped_text("\n\n".join(interpretation_lines), height=260),
+                toga.Box(style=Pack(height=SPACING_LG)),
+            ],
             style=Pack(direction=COLUMN, padding=SPACING_MD),
         )
 
@@ -253,7 +245,7 @@ class ResultadoView:
                 toga.OptionItem("Tabla", tabla),
                 toga.OptionItem("Interp.", interpretacion),
             ],
-            style=Pack(height=360),
+            style=Pack(height=430),
         )
 
         return toga.Box(
@@ -331,6 +323,92 @@ class ResultadoView:
         if remaining_months > 0:
             return f"{years}a, {remaining_months}M"
         return f"{years}a"
+
+    def _build_audit_table(
+        self,
+        indicadores: dict[str, dict[str, Any]],
+    ) -> toga.ScrollContainer:
+        """Construye una tabla visual de auditoría OMS."""
+
+        rows = []
+        for item in indicadores.values():
+            rows.append(self._build_indicator_table(item))
+
+        rows.append(toga.Box(style=Pack(height=SPACING_LG)))
+
+        content = toga.Box(
+            children=rows,
+            style=Pack(
+                direction=COLUMN,
+                padding=SPACING_MD,
+            ),
+        )
+        return scroll_screen(content)
+
+    def _build_indicator_table(self, item: dict[str, Any]) -> toga.Box:
+        """Construye una tabla campo/valor para un indicador."""
+
+        audit = item.get("auditoria", {})
+        rows = [
+            self._table_row("Valor", f"{item['valor']:.2f} {item['unidad']}"),
+            self._table_row("Z-score", f"{item['z_score']:+.2f} DE"),
+            self._table_row("Percentil", item.get("percentil_texto", "")),
+            self._table_row("Clasificación", item.get("clasificacion", "")),
+            self._table_row("L", f"{audit.get('L'):.4f}"),
+            self._table_row("M", f"{audit.get('M'):.4f}"),
+            self._table_row("S", f"{audit.get('S'):.5f}"),
+            self._table_row("Índice usado", str(audit.get("indice_usado", ""))),
+            self._table_row("Método", str(audit.get("metodo", ""))),
+            self._table_row("Fuente", str(audit.get("fuente", ""))),
+            self._table_row("Versión", str(audit.get("version", ""))),
+        ]
+
+        return toga.Box(
+            children=[
+                toga.Label(
+                    item.get("nombre", "Indicador OMS"),
+                    style=Pack(
+                        font_size=16,
+                        font_weight="bold",
+                        padding_bottom=SPACING_SM,
+                    ),
+                ),
+                *rows,
+            ],
+            style=Pack(
+                direction=COLUMN,
+                padding_bottom=SPACING_LG,
+            ),
+        )
+
+    def _table_row(self, label: str, value: str) -> toga.Box:
+        """Fila visual de tabla para auditoría."""
+
+        return toga.Box(
+            children=[
+                toga.Label(
+                    label,
+                    style=Pack(
+                        font_size=12,
+                        font_weight="bold",
+                        padding_right=SPACING_SM,
+                        width=112,
+                    ),
+                ),
+                toga.Label(
+                    value,
+                    style=Pack(
+                        font_size=12,
+                        flex=1,
+                    ),
+                ),
+            ],
+            style=Pack(
+                direction=ROW,
+                padding_top=SPACING_XS,
+                padding_bottom=SPACING_XS,
+            ),
+        )
 
     def _build_zscore_chart(self, item: dict[str, Any]) -> toga.Box:
         """Construye una gráfica compacta de z-score para un indicador."""
