@@ -476,11 +476,7 @@ class PediatriaNeonatalApp(toga.App):
                     children=[
                         menu_button,
                         toga.Box(style=Pack(flex=1)),
-                        toga.Button(
-                            icon=toga.Icon.APP_ICON,
-                            enabled=False,
-                            style=Pack(width=48),
-                        ),
+                        self._banner_logo(),
                     ],
                     style=Pack(direction=ROW, padding_bottom=SPACING_SM),
                 ),
@@ -493,6 +489,17 @@ class PediatriaNeonatalApp(toga.App):
                 padding_left=SPACING_MD,
                 padding_right=SPACING_MD,
             ),
+        )
+
+    def _banner_logo(self) -> toga.Widget:
+        """Logo compacto del banner."""
+
+        if self.icons.baby_bee_path is None:
+            return toga.Box(style=Pack(width=48))
+
+        return toga.ImageView(
+            str(self.icons.baby_bee_path),
+            style=Pack(width=38, height=38),
         )
 
     def _show_results_summary(self) -> None:
