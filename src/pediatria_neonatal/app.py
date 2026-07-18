@@ -6,6 +6,9 @@ from toga.style.pack import CENTER, COLUMN, ROW
 from pediatria_neonatal.application.context import create_service_context
 from pediatria_neonatal.application.navigator import Navigator
 from pediatria_neonatal.application.state import AppState
+from pediatria_neonatal.controllers.corrected_age_calculator_controller import (
+    CorrectedAgeCalculatorController,
+)
 from pediatria_neonatal.controllers.edad_corregida_controller import (
     EdadCorregidaController,
 )
@@ -101,6 +104,10 @@ class PediatriaNeonatalApp(toga.App):
             state=self.state,
             on_back=self.show_patient,
         )
+        self.corrected_age_calculator_controller = CorrectedAgeCalculatorController(
+            neonatal=self.services.neonatal,
+            on_back_home=self._go_home,
+        )
         self.historial_controller = HistorialController(
             state=self.state,
             on_select_result=self._show_patient_result,
@@ -161,6 +168,7 @@ class PediatriaNeonatalApp(toga.App):
                     padding_bottom=SPACING_MD,
                 ),
             ),
+            self._corrected_age_home_module(),
             subtitle("Sesión actual"),
             self._session_metric_row("Pacientes registrados", str(patient_count)),
             self._session_metric_row("IMC promedio", average_text),
@@ -324,6 +332,11 @@ class PediatriaNeonatalApp(toga.App):
         self.home_content.clear()
         self.home_content.add(self.build_home())
 
+    def _show_corrected_age_calculator(self) -> None:
+        self.tabs.current_tab = 0
+        self.home_content.clear()
+        self.home_content.add(self.corrected_age_calculator_controller.build_view())
+
     def _render_patient_if_needed(self) -> None:
         if not self.patient_content.children:
             self.navigator.show(self.patient_controller.build_view)
@@ -354,6 +367,39 @@ class PediatriaNeonatalApp(toga.App):
                 direction=ROW,
                 padding_top=SPACING_SM,
                 padding_bottom=SPACING_SM,
+            ),
+        )
+
+    def _corrected_age_home_module(self) -> toga.Box:
+        """Módulo de acceso a calculadora efímera de edad corregida."""
+
+        return toga.Box(
+            children=[
+                toga.Label(
+                    "Calculadora de edad corregida",
+                    style=Pack(
+                        font_size=16,
+                        font_weight="bold",
+                        padding_bottom=SPACING_XS,
+                    ),
+                ),
+                toga.Label(
+                    "Cálculo rápido para prematuros respecto a hoy. No guarda datos.",
+                    style=Pack(
+                        font_size=13,
+                        color="#6B7280",
+                        padding_bottom=SPACING_SM,
+                    ),
+                ),
+                secondary_button(
+                    "Abrir calculadora",
+                    lambda widget: self._show_corrected_age_calculator(),
+                ),
+            ],
+            style=Pack(
+                direction=COLUMN,
+                padding_top=SPACING_SM,
+                padding_bottom=SPACING_MD,
             ),
         )
 
