@@ -103,7 +103,7 @@ class PacienteView:
 
         content = toga.Box(
             children=[
-                title("Registro de paciente pediátrico"),
+                title("Registro de Paciente"),
                 subtitle("Datos generales"),
                 field_label("Nombre"),
                 self.nombre_input,
