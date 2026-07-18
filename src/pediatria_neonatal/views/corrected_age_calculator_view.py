@@ -46,12 +46,14 @@ class CorrectedAgeCalculatorView:
             max=date.today(),
             style=Pack(flex=1),
         )
-        self.semanas_input = toga.TextInput(
-            placeholder="Ej. 32",
+        self.semanas_input = toga.Selection(
+            items=[str(value) for value in range(22, 43)],
+            value="32",
             style=Pack(flex=1),
         )
-        self.dias_input = toga.TextInput(
-            placeholder="0 a 6",
+        self.dias_input = toga.Selection(
+            items=[str(value) for value in range(0, 7)],
+            value="0",
             style=Pack(flex=1),
         )
         self.result_box = toga.Box(style=Pack(direction=COLUMN))
@@ -142,8 +144,8 @@ class CorrectedAgeCalculatorView:
         """Limpia formulario y resultado visible."""
 
         self.fecha_nacimiento_input.value = date.today()
-        self.semanas_input.value = ""
-        self.dias_input.value = ""
+        self.semanas_input.value = "32"
+        self.dias_input.value = "0"
         self.result_box.clear()
 
     def show_result(self, result: dict[str, Any]) -> None:
