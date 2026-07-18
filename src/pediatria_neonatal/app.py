@@ -177,6 +177,7 @@ class PediatriaNeonatalApp(toga.App):
                 style=Pack(
                     font_size=14,
                     color="#6B7280",
+                    text_align=CENTER,
                     padding_top=SPACING_SM,
                     padding_bottom=SPACING_MD,
                 ),
@@ -383,14 +384,6 @@ class PediatriaNeonatalApp(toga.App):
                         padding_bottom=SPACING_XS,
                     ),
                 ),
-                toga.Label(
-                    "Cálculo rápido para prematuros respecto a hoy. No guarda datos.",
-                    style=Pack(
-                        font_size=13,
-                        color="#6B7280",
-                        padding_bottom=SPACING_SM,
-                    ),
-                ),
                 secondary_button(
                     "Abrir calculadora",
                     lambda widget: self._show_corrected_age_calculator(),
@@ -483,9 +476,10 @@ class PediatriaNeonatalApp(toga.App):
                     children=[
                         menu_button,
                         toga.Box(style=Pack(flex=1)),
-                        toga.Label(
-                            "🐝",
-                            style=Pack(width=48, font_size=18, text_align=CENTER),
+                        toga.Button(
+                            icon=toga.Icon.APP_ICON,
+                            enabled=False,
+                            style=Pack(width=48),
                         ),
                     ],
                     style=Pack(direction=ROW, padding_bottom=SPACING_SM),
