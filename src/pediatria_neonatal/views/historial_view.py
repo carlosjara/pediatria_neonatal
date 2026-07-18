@@ -4,7 +4,7 @@ from typing import Any
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from pediatria_neonatal.views.components import (
     COLOR_MUTED,
@@ -110,33 +110,30 @@ class HistorialView:
         clasificacion_prematuro = medicion.get("clasificacion_prematuro", "")
 
         children = [
-            # Nombre y fecha
-            toga.Box(
-                children=[
-                    toga.Label(
-                        paciente,
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            flex=1,
-                        ),
-                    ),
-                    toga.Label(
-                        fecha,
-                        style=Pack(
-                            font_size=FONT_SIZE_CAPTION,
-                            color=COLOR_MUTED,
-                        ),
-                    ),
-                ],
-                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+            toga.Label(
+                paciente,
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    font_weight="bold",
+                    padding_bottom=SPACING_XS,
+                ),
             ),
-            # Edad
+            toga.Label(
+                fecha,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                    padding_bottom=SPACING_XS,
+                ),
+            ),
             toga.Label(
                 f"Edad: {edad_texto}",
-                style=Pack(font_size=FONT_SIZE_CAPTION, color=COLOR_MUTED),
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                    padding_bottom=SPACING_XS,
+                ),
             ),
-            # Edad corregida (solo si es prematuro)
         ]
 
         if es_prematuro and edad_corregida_texto:
@@ -166,28 +163,24 @@ class HistorialView:
                 )
             )
 
-        # IMC y clasificación
-        children.append(
-            toga.Box(
-                children=[
-                    toga.Label(
-                        f"IMC: {imc:.2f}",
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            flex=1,
-                        ),
+        children.extend(
+            [
+                toga.Label(
+                    f"IMC: {imc:.2f}",
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        padding_top=SPACING_XS,
                     ),
-                    toga.Label(
-                        clasificacion,
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            color=color,
-                        ),
+                ),
+                toga.Label(
+                    clasificacion,
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=color,
                     ),
-                ],
-                style=Pack(direction=ROW, padding_top=SPACING_XS),
-            ),
+                ),
+            ]
         )
 
         return toga.Box(

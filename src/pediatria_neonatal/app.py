@@ -76,6 +76,7 @@ class PediatriaNeonatalApp(toga.App):
         self.main_window.content = self.tabs
         self.main_window.show()
 
+        self._refresh_history()
         self.show_patient()
 
     def _init_controllers(self) -> None:
@@ -119,6 +120,7 @@ class PediatriaNeonatalApp(toga.App):
 
     def show_results(self) -> None:
         """Muestra la pantalla de resultados."""
+        self._refresh_history()
         self.navigator.show(self.result_controller.build_view)
 
     def show_edad_corregida(self) -> None:

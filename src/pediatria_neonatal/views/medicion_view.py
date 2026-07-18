@@ -100,7 +100,7 @@ class MedicionView:
                 field_label("Longitud / talla (cm)"),
                 self.talla_input,
                 caption_text(
-                    "OMS ajusta 0.7 cm si la posición no corresponde a la edad"
+                    "OMS ajusta 0.7 cm según edad y posición."
                 ),
                 field_label("Posición"),
                 self.posicion_input,
