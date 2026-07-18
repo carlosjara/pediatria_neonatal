@@ -11,6 +11,7 @@ from pediatria_neonatal.presentation.resultados import (
     ResultsSummaryGrid,
     semantic_color_for_classification,
 )
+from pediatria_neonatal.domain.lms import IndicadorCrecimiento
 from pediatria_neonatal.presentation.oms_chart import build_oms_chart_model
 from pediatria_neonatal.views.components import (
     SPACING_LG,
@@ -438,12 +439,25 @@ class ResultadoView:
             indicator=item,
             sex=self.paciente_data.get("sexo", ""),
             age_days=oms.get("edad_usada_dias"),
+            measure_cm=self._oms_measure_cm(),
         )
 
         if chart_model is None:
             return self._build_zscore_chart(item)
 
         return oms_curve_chart(chart_model)
+
+    def _oms_measure_cm(self) -> float | None:
+        """Longitud/talla OMS usada para curvas peso-longitud o peso-talla."""
+
+        longitud_talla = self.resultados.get("oms2006", {}).get("longitud_talla")
+        if not longitud_talla:
+            return None
+
+        value = longitud_talla.get("valor_oms_cm")
+        if value is None:
+            return None
+        return float(value)
 
     def _filtered_indicators(
         self,
@@ -452,12 +466,41 @@ class ResultadoView:
         """Devuelve todos los indicadores o solo el seleccionado."""
 
         if self.selected_indicator_key is None:
-            return indicadores
+            return self._ordered_indicators(indicadores)
 
         item = indicadores.get(self.selected_indicator_key)
         if not item:
             return indicadores
         return {self.selected_indicator_key: item}
+
+    def _ordered_indicators(
+        self,
+        indicadores: dict[str, dict[str, Any]],
+    ) -> dict[str, dict[str, Any]]:
+        """Ordena el detalle para mostrar primero IMC y luego resumen clínico."""
+
+        order = [
+            IndicadorCrecimiento.IMC_PARA_EDAD.value,
+            IndicadorCrecimiento.PESO_PARA_LONGITUD.value,
+            IndicadorCrecimiento.PESO_PARA_TALLA.value,
+            IndicadorCrecimiento.LONGITUD_PARA_EDAD.value,
+            IndicadorCrecimiento.TALLA_PARA_EDAD.value,
+            IndicadorCrecimiento.PESO_PARA_EDAD.value,
+            IndicadorCrecimiento.PERIMETRO_CEFALICO_PARA_EDAD.value,
+        ]
+        ordered = {
+            key: indicadores[key]
+            for key in order
+            if key in indicadores
+        }
+        ordered.update(
+            {
+                key: value
+                for key, value in indicadores.items()
+                if key not in ordered
+            }
+        )
+        return ordered
 
     def _detail_title(self, fallback: str) -> str:
         """Agrega el nombre del indicador cuando se abre desde una tarjeta."""

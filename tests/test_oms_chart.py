@@ -33,16 +33,23 @@ def test_build_oms_chart_model_generates_bmi_curves() -> None:
     assert all(curve.points for curve in model.curves)
 
 
-def test_build_oms_chart_model_ignores_measure_based_indicators() -> None:
+def test_build_oms_chart_model_generates_weight_for_length_curves() -> None:
     model = build_oms_chart_model(
         indicator_key="weight_for_length",
         indicator={
             "nombre": "Peso para longitud",
             "valor": 6.9,
             "unidad": "kg",
+            "z_score_texto": "+1.20 DE",
+            "percentil_texto": "P88.5",
         },
         sex="M",
         age_days=150,
+        measure_cm=56.0,
     )
 
-    assert model is None
+    assert model is not None
+    assert model.x_label == "Longitud (cm)"
+    assert model.patient_x == 56.0
+    assert model.patient_y == 6.9
+    assert all(curve.points for curve in model.curves)

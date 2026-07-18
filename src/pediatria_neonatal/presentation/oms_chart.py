@@ -68,6 +68,11 @@ AGE_BASED_INDICATORS = {
     IndicadorCrecimiento.PERIMETRO_CEFALICO_PARA_EDAD,
 }
 
+MEASURE_BASED_INDICATORS = {
+    IndicadorCrecimiento.PESO_PARA_LONGITUD,
+    IndicadorCrecimiento.PESO_PARA_TALLA,
+}
+
 CURVE_DEFINITIONS = (
     ("P1", -2.33, "#60A5FA"),
     ("P3", -1.88, "#93C5FD"),
@@ -85,47 +90,144 @@ def build_oms_chart_model(
     indicator: dict[str, object],
     sex: str | Sexo,
     age_days: int | float | None,
+    measure_cm: int | float | None = None,
     repository: LMSRepository | None = None,
 ) -> OmsChartModel | None:
-    """Construye curvas OMS para indicadores dependientes de edad."""
-
-    if age_days is None:
-        return None
+    """Construye curvas OMS para indicadores por edad o por longitud/talla."""
 
     try:
         growth_indicator = IndicadorCrecimiento(indicator_key)
     except ValueError:
         return None
 
-    if growth_indicator not in AGE_BASED_INDICATORS:
+    if growth_indicator in AGE_BASED_INDICATORS:
+        return _build_age_based_chart_model(
+            growth_indicator=growth_indicator,
+            indicator=indicator,
+            sex=sex,
+            age_days=age_days,
+            repository=repository,
+        )
+
+    if growth_indicator in MEASURE_BASED_INDICATORS:
+        return _build_measure_based_chart_model(
+            growth_indicator=growth_indicator,
+            indicator=indicator,
+            sex=sex,
+            measure_cm=measure_cm,
+            repository=repository,
+        )
+
+    return None
+
+
+def _build_age_based_chart_model(
+    *,
+    growth_indicator: IndicadorCrecimiento,
+    indicator: dict[str, object],
+    sex: str | Sexo,
+    age_days: int | float | None,
+    repository: LMSRepository | None,
+) -> OmsChartModel | None:
+    """Construye modelo para curvas dependientes de edad."""
+
+    if age_days is None:
         return None
 
     try:
-        normalized_sex = Sexo.normalizar(sex)
         age = max(0, int(round(float(age_days))))
+    except (TypeError, ValueError):
+        return None
+
+    repository = repository or LMSRepository()
+    return _build_curve_model(
+        growth_indicator=growth_indicator,
+        indicator=indicator,
+        sex=sex,
+        patient_x=age / DAYS_PER_MONTH,
+        x_label="Edad (meses)",
+        sample_values=_sample_age_days(age),
+        lookup=lambda sample: repository.obtener_por_edad(
+            indicador=growth_indicator,
+            sexo=sex,
+            edad_dias=int(sample),
+        ),
+        point_x=lambda sample: float(sample) / DAYS_PER_MONTH,
+    )
+
+
+def _build_measure_based_chart_model(
+    *,
+    growth_indicator: IndicadorCrecimiento,
+    indicator: dict[str, object],
+    sex: str | Sexo,
+    measure_cm: int | float | None,
+    repository: LMSRepository | None,
+) -> OmsChartModel | None:
+    """Construye modelo para curvas dependientes de longitud/talla."""
+
+    if measure_cm is None:
+        return None
+
+    try:
+        measure = float(measure_cm)
+    except (TypeError, ValueError):
+        return None
+
+    repository = repository or LMSRepository()
+    label = (
+        "Longitud (cm)"
+        if growth_indicator == IndicadorCrecimiento.PESO_PARA_LONGITUD
+        else "Talla (cm)"
+    )
+    return _build_curve_model(
+        growth_indicator=growth_indicator,
+        indicator=indicator,
+        sex=sex,
+        patient_x=measure,
+        x_label=label,
+        sample_values=_sample_measure_cm(growth_indicator, measure),
+        lookup=lambda sample: repository.obtener_por_medida(
+            indicador=growth_indicator,
+            sexo=sex,
+            medida_cm=float(sample),
+        ),
+        point_x=float,
+    )
+
+
+def _build_curve_model(
+    *,
+    growth_indicator: IndicadorCrecimiento,
+    indicator: dict[str, object],
+    sex: str | Sexo,
+    patient_x: float,
+    x_label: str,
+    sample_values: tuple[int | float, ...],
+    lookup,
+    point_x,
+) -> OmsChartModel | None:
+    """Construye curvas percentilares desde una función LMS."""
+
+    try:
+        Sexo.normalizar(sex)
         value = float(indicator["valor"])
     except (ErrorTablaLMS, KeyError, TypeError, ValueError):
         return None
 
-    repository = repository or LMSRepository()
-    sample_ages = _sample_age_days(age)
     curves = []
 
     for label, z_score, color in CURVE_DEFINITIONS:
         points = []
-        for sample_age in sample_ages:
+        for sample in sample_values:
             try:
-                lms = repository.obtener_por_edad(
-                    indicador=growth_indicator,
-                    sexo=normalized_sex,
-                    edad_dias=sample_age,
-                )
+                lms = lookup(sample)
             except ErrorTablaLMS:
                 continue
 
             points.append(
                 OmsChartPoint(
-                    x=sample_age / DAYS_PER_MONTH,
+                    x=point_x(sample),
                     y=_measurement_from_lms(lms.parametros, z_score),
                 )
             )
@@ -146,9 +248,9 @@ def build_oms_chart_model(
     unit = str(indicator.get("unidad") or "")
     return OmsChartModel(
         title=f"{indicator.get('nombre', 'Indicador OMS')} (OMS 2006)",
-        x_label="Edad (meses)",
+        x_label=x_label,
         y_label=unit,
-        patient_x=age / DAYS_PER_MONTH,
+        patient_x=patient_x,
         patient_y=value,
         patient_label=f"{value:.2f} {unit}".strip(),
         z_score_text=str(indicator.get("z_score_texto") or ""),
@@ -165,6 +267,22 @@ def _sample_age_days(patient_age_days: int) -> tuple[int, ...]:
         int(round(month * DAYS_PER_MONTH))
         for month in range(0, int(max_age / DAYS_PER_MONTH) + 1)
     )
+
+
+def _sample_measure_cm(
+    indicator: IndicadorCrecimiento,
+    patient_measure_cm: float,
+) -> tuple[float, ...]:
+    """Devuelve puntos de longitud/talla dentro del rango OMS disponible."""
+
+    if indicator == IndicadorCrecimiento.PESO_PARA_LONGITUD:
+        min_cm, max_cm = 45.0, 110.0
+    else:
+        min_cm, max_cm = 65.0, 120.0
+
+    max_cm = max(max_cm, min(max(patient_measure_cm, min_cm), max_cm))
+    steps = int(round((max_cm - min_cm) / 1.0)) + 1
+    return tuple(round(min_cm + index, 1) for index in range(steps))
 
 
 def _measurement_from_lms(lms: ParametrosLMS, z_score: float) -> float:
