@@ -29,6 +29,7 @@ from pediatria_neonatal.views.components import (
 
 class PediatriaNeonatalApp(toga.App):
     def startup(self) -> None:
+        self.main_window = toga.MainWindow(title=self.formal_name)
         self.state = AppState()
         self.state.iniciar_sesion_temporal()
         self.services = create_service_context()
@@ -66,7 +67,6 @@ class PediatriaNeonatalApp(toga.App):
         self._render_empty_results()
         self._refresh_history()
 
-        self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.tabs
         self.main_window.show()
 
