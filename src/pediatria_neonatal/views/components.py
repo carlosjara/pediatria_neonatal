@@ -27,6 +27,7 @@ COLOR_WARNING = "#D97706"
 COLOR_DANGER = "#DC2626"
 COLOR_MUTED = "#9CA3AF"
 COLOR_BACKGROUND = None
+COLOR_CARD_SOFT = "#F8FAFC"
 
 # Colores clínicos para clasificaciones de crecimiento
 COLOR_SEVERE_UNDERWEIGHT = "#B91C1C"  # Rojo intenso - desnutrición severa
@@ -41,6 +42,72 @@ COLOR_PREMATURE_EXTREME = "#7C3AED"  # Púrpura intenso para prematuro extremo
 COLOR_PREMATURE_VERY_PRETERM = "#A855F7"  # Púrpura para muy prematuro
 COLOR_PREMATURE_MODERATE = "#C084FC"  # Púrpura claro para prematuro moderado
 COLOR_PREMATURE_LATE = "#E9D5FF"  # Púrpura muy claro para prematuro tardío
+
+
+def _soft_background_for_color(color: str) -> str:
+    """Color pastel estable para resaltar resultados clínicos."""
+    color_map = {
+        COLOR_SUCCESS: "#EAF8EF",
+        COLOR_NORMAL: "#EAF8EF",
+        COLOR_WARNING: "#FFF7D6",
+        COLOR_OVERWEIGHT: "#FFF4CC",
+        COLOR_DANGER: "#FDECEC",
+        COLOR_OBESITY: "#FDECEC",
+        "#1D4ED8": "#EAF2FF",
+        COLOR_MUTED: "#F8FAFC",
+    }
+    return color_map.get(color, "#F3F4F6")
+
+
+def _soft_panel(children: list[toga.Widget], background: str = COLOR_CARD_SOFT):
+    """Panel con fondo suave compatible con Toga 0.5.6."""
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            background_color=background,
+            padding=SPACING_SM,
+        ),
+    )
+
+
+def _soft_row_panel(children: list[toga.Widget], background: str) -> toga.Box:
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=ROW,
+            background_color=background,
+            padding=SPACING_SM,
+        ),
+    )
+
+
+def _centered_soft_panel(
+    children: list[toga.Widget],
+    background: str,
+    width: int,
+    direction: str = COLUMN,
+) -> toga.Box:
+    return toga.Box(
+        children=[
+            toga.Box(style=Pack(flex=1)),
+            toga.Box(
+                children=children,
+                style=Pack(
+                    direction=direction,
+                    background_color=background,
+                    padding=SPACING_SM,
+                    width=width,
+                ),
+            ),
+            toga.Box(style=Pack(flex=1)),
+        ],
+        style=Pack(direction=ROW),
+    )
+
+
+def _text_badge_width(text: str, minimum: int = 132, maximum: int = 280) -> int:
+    return min(max(len(text) * 12 + 36, minimum), maximum)
 
 
 def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
@@ -190,12 +257,14 @@ def alert_box(
 
     return toga.Box(
         children=[
-            toga.Label(
-                f"{icon_map.get(severity, '')} {text}",
+            toga.MultilineTextInput(
+                value=f"{icon_map.get(severity, '')} {text}",
+                readonly=True,
                 style=Pack(
                     font_size=FONT_SIZE_BODY,
                     color=color_map.get(severity, COLOR_MUTED),
                     flex=1,
+                    height=64,
                 ),
             ),
         ],
@@ -230,54 +299,6 @@ def badge(
             padding_left=SPACING_SM,
             padding_right=SPACING_SM,
             # Remover background_color para que use el tema del sistema
-        ),
-    )
-
-
-def classification_badge(text: str, color: str) -> toga.Box:
-    """Badge semántico que siempre conserva texto de clasificación."""
-
-    return toga.Box(
-        children=[
-            toga.Label(
-                text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=color,
-                    text_align=CENTER,
-                ),
-            )
-        ],
-        style=Pack(
-            padding_top=SPACING_SM,
-            padding_bottom=SPACING_SM,
-            padding_left=SPACING_MD,
-            padding_right=SPACING_MD,
-        ),
-    )
-
-
-def percentile_badge(text: str, color: str = COLOR_PRIMARY) -> toga.Box:
-    """Badge compacto para percentiles."""
-
-    return toga.Box(
-        children=[
-            toga.Label(
-                text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=color,
-                    text_align=CENTER,
-                ),
-            )
-        ],
-        style=Pack(
-            padding_top=SPACING_XS,
-            padding_bottom=SPACING_XS,
-            padding_left=SPACING_SM,
-            padding_right=SPACING_SM,
         ),
     )
 
@@ -481,60 +502,91 @@ def patient_summary_card(
 
 def main_result_card(result: MainResultCard) -> toga.Box:
     """Tarjeta principal del resumen de resultados."""
+    semantic_background = _soft_background_for_color(result.semantic_color)
+
+    content = [
+        toga.Label(
+            "IMC para la edad",
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            "(OMS 2006)",
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                text_align=CENTER,
+                padding_bottom=SPACING_SM,
+            ),
+        ),
+        toga.Label(
+            f"{result.value_text} {result.unit}",
+            style=Pack(
+                font_size=FONT_SIZE_HERO,
+                font_weight="bold",
+                text_align=CENTER,
+                padding_top=SPACING_SM,
+                padding_bottom=SPACING_SM,
+            ),
+        ),
+        toga.Box(style=Pack(height=SPACING_SM)),
+        _centered_soft_panel(
+            [
+                toga.Label(
+                    f"{result.z_score_text} (Z-score)",
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        flex=1,
+                    ),
+                ),
+                toga.Label(
+                    result.percentile_text,
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        text_align=CENTER,
+                    ),
+                ),
+            ],
+            background=semantic_background,
+            width=320,
+            direction=ROW,
+        ),
+        toga.Box(style=Pack(height=SPACING_SM)),
+        toga.Label(
+            "Clasificación",
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                color=COLOR_MUTED,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        _centered_soft_panel(
+            [
+                toga.Label(
+                    result.classification_text,
+                    style=Pack(
+                        font_size=FONT_SIZE_SUBTITLE,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        text_align=CENTER,
+                    ),
+                ),
+            ],
+            background=semantic_background,
+            width=_text_badge_width(result.classification_text),
+        ),
+    ]
 
     return toga.Box(
-        children=[
-            toga.Label(
-                "IMC para la edad",
-                style=Pack(
-                    font_size=FONT_SIZE_SUBTITLE,
-                    font_weight="bold",
-                    text_align=CENTER,
-                ),
-            ),
-            toga.Label(
-                "(OMS 2006)",
-                style=Pack(
-                    font_size=FONT_SIZE_SUBTITLE,
-                    font_weight="bold",
-                    text_align=CENTER,
-                    padding_bottom=SPACING_SM,
-                ),
-            ),
-            hero_value(result.value_text, result.unit),
-            toga.Box(
-                children=[
-                    toga.Label(
-                        f"{result.z_score_text} (Z-score)",
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            color=result.semantic_color,
-                            flex=1,
-                        ),
-                    ),
-                    percentile_badge(result.percentile_text, result.semantic_color),
-                ],
-                style=Pack(
-                    direction=ROW,
-                    padding_top=SPACING_SM,
-                    padding_bottom=SPACING_SM,
-                ),
-            ),
-            toga.Label(
-                "Clasificación",
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    color=COLOR_MUTED,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            classification_badge(
-                result.classification_text,
-                result.semantic_color,
-            ),
-        ],
+        children=[_soft_panel(content, background="#FFFFFF")],
         style=Pack(
             direction=COLUMN,
             padding_top=SPACING_SM,
@@ -548,61 +600,64 @@ def indicator_summary_card(
     on_press: callable,
 ) -> toga.Box:
     """Tarjeta compacta para un indicador secundario."""
+    background = _soft_background_for_color(item.semantic_color)
+
+    content = [
+        toga.Label(
+            item.label,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        toga.Label(
+            item.z_score_text,
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            item.percentile_text,
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            item.classification_text,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                color=item.semantic_color,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        toga.Button(
+            "Detalle",
+            on_press=on_press,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                padding_top=SPACING_XS,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+    ]
 
     return toga.Box(
-        children=[
-            toga.Label(
-                item.label,
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            toga.Label(
-                item.z_score_text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                ),
-            ),
-            toga.Label(
-                item.percentile_text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                ),
-            ),
-            toga.Label(
-                item.classification_text,
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            toga.Button(
-                "Detalle",
-                on_press=on_press,
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    padding_top=SPACING_XS,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-        ],
+        children=[_soft_panel(content, background=background)],
         style=Pack(
             direction=COLUMN,
             flex=1,
             height=132,
-            padding=SPACING_SM,
+            padding=SPACING_XS,
         ),
     )
 
@@ -655,23 +710,17 @@ def zscore_chart(
     classification: str,
     color: str,
 ) -> toga.Box:
-    """Gráfico compacto de posición por z-score."""
+    """Gráfico horizontal compacto de posición por z-score."""
 
     marker_index = _zscore_marker_index(z_score)
-    marker_cells = []
-    for index in range(7):
-        marker_cells.append(
-            toga.Label(
-                "▲" if index == marker_index else "",
-                style=Pack(
-                    flex=1,
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=color,
-                    text_align=CENTER,
-                ),
-            )
-        )
+    band_labels = ["Muy bajo", "Bajo", "Normal", "Alto", "Muy alto"]
+    band_colors = [
+        COLOR_DANGER,
+        COLOR_WARNING,
+        COLOR_SUCCESS,
+        COLOR_OVERWEIGHT,
+        COLOR_DANGER,
+    ]
 
     return toga.Box(
         children=[
@@ -685,39 +734,27 @@ def zscore_chart(
             ),
             toga.Box(
                 children=[
-                    _chart_band("Muy bajo", COLOR_DANGER),
-                    _chart_band("Bajo", COLOR_WARNING),
-                    _chart_band("Normal", COLOR_SUCCESS),
-                    _chart_band("Alto", COLOR_OVERWEIGHT),
-                    _chart_band("Muy alto", COLOR_DANGER),
+                    _chart_label(label, band_color)
+                    for label, band_color in zip(band_labels, band_colors)
                 ],
                 style=Pack(direction=ROW, padding_bottom=SPACING_XS),
-            ),
-            toga.Box(
-                children=marker_cells,
-                style=Pack(direction=ROW, padding_bottom=SPACING_SM),
             ),
             toga.Box(
                 children=[
-                    toga.Label(
-                        f"Z-score {z_score:+.2f} DE",
-                        style=Pack(
-                            flex=1,
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            color=color,
-                        ),
-                    ),
-                    toga.Label(
-                        percentile_text,
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            color=color,
-                        ),
-                    ),
+                    _chart_marker_cell(index == marker_index, color)
+                    for index in range(9)
                 ],
-                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+                style=Pack(direction=ROW, padding_bottom=SPACING_SM),
+            ),
+            toga.Label(
+                f"Z-score {z_score:+.2f} DE · {percentile_text}",
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    font_weight="bold",
+                    color=color,
+                    text_align=CENTER,
+                    padding_bottom=SPACING_XS,
+                ),
             ),
             toga.Label(
                 classification,
@@ -736,24 +773,35 @@ def zscore_chart(
     )
 
 
-def _chart_band(text: str, color: str) -> toga.Label:
+def _chart_label(text: str, color: str) -> toga.Label:
     return toga.Label(
         text,
         style=Pack(
             flex=1,
-            font_size=FONT_SIZE_CAPTION,
+            font_size=10,
             font_weight="bold",
             color=color,
             text_align=CENTER,
-            padding_top=SPACING_SM,
-            padding_bottom=SPACING_SM,
+        ),
+    )
+
+
+def _chart_marker_cell(is_current: bool, color: str) -> toga.Label:
+    return toga.Label(
+        "▲" if is_current else "─",
+        style=Pack(
+            flex=1,
+            font_size=12,
+            font_weight="bold",
+            color=color if is_current else COLOR_MUTED,
+            text_align=CENTER,
         ),
     )
 
 
 def _zscore_marker_index(z_score: float) -> int:
     clipped = min(4.0, max(-4.0, float(z_score)))
-    return round(((clipped + 4.0) / 8.0) * 6)
+    return round(((clipped + 4.0) / 8.0) * 8)
 
 
 def age_display(

@@ -1,10 +1,11 @@
 """Vista para mostrar el historial de mediciones."""
 
+from collections.abc import Callable
 from typing import Any
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from pediatria_neonatal.views.components import (
     COLOR_MUTED,
@@ -27,12 +28,14 @@ class HistorialView:
     def __init__(
         self,
         mediciones: list[dict[str, Any]],
+        on_select_result: Callable[[int], None] | None = None,
     ) -> None:
         self.mediciones = mediciones
+        self.on_select_result = on_select_result
 
     def build(self) -> toga.Widget:
         """Construye la interfaz del historial."""
-        children = [title("Historial de Mediciones")]
+        children = [title("Historial")]
 
         if not self.mediciones:
             children.append(self._build_empty_state())
@@ -40,8 +43,8 @@ class HistorialView:
             children.append(
                 caption_text(f"{len(self.mediciones)} mediciones registradas")
             )
-            for medicion in self.mediciones:
-                children.append(self._build_medicion_card(medicion))
+            for index, medicion in enumerate(self.mediciones):
+                children.append(self._build_medicion_card(index, medicion))
 
         content = toga.Box(
             children=children,
@@ -92,7 +95,7 @@ class HistorialView:
             ),
         )
 
-    def _build_medicion_card(self, medicion: dict[str, Any]) -> toga.Box:
+    def _build_medicion_card(self, index: int, medicion: dict[str, Any]) -> toga.Box:
         """Construye una tarjeta de medición con toda la información visible."""
         fecha = medicion.get("fecha", "")
         paciente = medicion.get("paciente_nombre", "Paciente")
@@ -110,33 +113,30 @@ class HistorialView:
         clasificacion_prematuro = medicion.get("clasificacion_prematuro", "")
 
         children = [
-            # Nombre y fecha
-            toga.Box(
-                children=[
-                    toga.Label(
-                        paciente,
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            flex=1,
-                        ),
-                    ),
-                    toga.Label(
-                        fecha,
-                        style=Pack(
-                            font_size=FONT_SIZE_CAPTION,
-                            color=COLOR_MUTED,
-                        ),
-                    ),
-                ],
-                style=Pack(direction=ROW, padding_bottom=SPACING_XS),
+            toga.Label(
+                paciente,
+                style=Pack(
+                    font_size=FONT_SIZE_BODY,
+                    font_weight="bold",
+                    padding_bottom=SPACING_XS,
+                ),
             ),
-            # Edad
+            toga.Label(
+                fecha,
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                    padding_bottom=SPACING_XS,
+                ),
+            ),
             toga.Label(
                 f"Edad: {edad_texto}",
-                style=Pack(font_size=FONT_SIZE_CAPTION, color=COLOR_MUTED),
+                style=Pack(
+                    font_size=FONT_SIZE_CAPTION,
+                    color=COLOR_MUTED,
+                    padding_bottom=SPACING_XS,
+                ),
             ),
-            # Edad corregida (solo si es prematuro)
         ]
 
         if es_prematuro and edad_corregida_texto:
@@ -166,29 +166,40 @@ class HistorialView:
                 )
             )
 
-        # IMC y clasificación
-        children.append(
-            toga.Box(
-                children=[
-                    toga.Label(
-                        f"IMC: {imc:.2f}",
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            flex=1,
-                        ),
+        children.extend(
+            [
+                toga.Label(
+                    f"IMC: {imc:.2f}",
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        padding_top=SPACING_XS,
                     ),
-                    toga.Label(
-                        clasificacion,
-                        style=Pack(
-                            font_size=FONT_SIZE_BODY,
-                            font_weight="bold",
-                            color=color,
-                        ),
+                ),
+                toga.Label(
+                    clasificacion,
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=color,
                     ),
-                ],
-                style=Pack(direction=ROW, padding_top=SPACING_XS),
-            ),
+                ),
+            ]
         )
+
+        if self.on_select_result is not None:
+            children.append(
+                toga.Button(
+                    "Ver resultado",
+                    on_press=lambda widget, item_index=index: self.on_select_result(
+                        item_index
+                    ),
+                    style=Pack(
+                        font_size=FONT_SIZE_CAPTION,
+                        padding_top=SPACING_SM,
+                        padding_bottom=SPACING_XS,
+                    ),
+                )
+            )
 
         return toga.Box(
             children=children,

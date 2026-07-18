@@ -78,7 +78,11 @@ class MedicionController:
                 perimetro_cefalico_cm=perimetro_cm,
             )
 
-            resultados = self._calculate_results(paciente, medicion)
+            resultados = self._calculate_results(
+                paciente,
+                medicion,
+                raw_data.get("posicion"),
+            )
 
             self.state.medicion_actual = medicion
             self.state.resultados_actuales = resultados
@@ -93,6 +97,7 @@ class MedicionController:
         self,
         paciente: Any,
         medicion: MedicionAntropometrica,
+        posicion_medicion: str | None = None,
     ) -> dict[str, Any]:
         """Ejecuta los cálculos usando los servicios OMS 2006."""
         resultados: dict[str, Any] = {
@@ -132,9 +137,7 @@ class MedicionController:
             )
 
         posicion = PosicionMedicion.normalizar(
-            getattr(self.view, "posicion_input", None).value
-            if self.view is not None and hasattr(self.view, "posicion_input")
-            else "Acostado"
+            posicion_medicion or "Acostado"
         )
         evaluacion = self.services.oms2006.evaluar(
             paciente=paciente,
