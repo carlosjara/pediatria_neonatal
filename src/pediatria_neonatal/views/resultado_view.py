@@ -5,7 +5,7 @@ from typing import Any
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from pediatria_neonatal.views.components import (
     SPACING_LG,
@@ -59,17 +59,23 @@ class ResultadoView:
         if "imc" in self.resultados:
             children.append(self._build_imc_section())
 
+        if "oms2006" in self.resultados:
+            children.append(self._build_secondary_indicators_section())
+            children.append(self._build_detail_tabs_section())
+
         if "interpretacion" in self.resultados:
             children.append(self._build_interpretation_section())
 
         if "alertas" in self.resultados and self.resultados["alertas"]:
             children.append(self._build_alerts_section())
 
-        children.extend([
-            toga.Box(style=Pack(height=SPACING_LG)),
-            primary_button("Nueva medición", self._new_measurement),
-            secondary_button("← Volver al paciente", self._back_to_patient),
-        ])
+        children.extend(
+            [
+                toga.Box(style=Pack(height=SPACING_LG)),
+                primary_button("Nueva medición", self._new_measurement),
+                secondary_button("← Volver al paciente", self._back_to_patient),
+            ]
+        )
 
         content = toga.Box(
             children=children,
@@ -121,30 +127,36 @@ class ResultadoView:
         """Construye la sección con los datos de medición actuales."""
         # Obtener datos de medición desde el estado o resultados
         medicion = self.resultados.get("medicion_actual", {})
-        
+
         # Si no hay datos en resultados, intentar desde paciente_data
         if not medicion:
             medicion = {
                 "peso_kg": self.paciente_data.get("peso_actual"),
                 "talla_cm": self.paciente_data.get("talla_actual"),
-                "perimetro_cefalico_cm": self.paciente_data.get("perimetro_cefalico_actual"),
+                "perimetro_cefalico_cm": self.paciente_data.get(
+                    "perimetro_cefalico_actual"
+                ),
                 "fecha_medicion": self.paciente_data.get("fecha_medicion"),
             }
-        
+
         children = [section_header("Mediciones actuales", "Datos antropométricos")]
-        
+
         # Peso
         if medicion.get("peso_kg"):
             children.append(info_row("Peso", f"{medicion['peso_kg']:.1f} kg"))
-        
+
         # Talla
         if medicion.get("talla_cm"):
             children.append(info_row("Talla", f"{medicion['talla_cm']:.1f} cm"))
-        
+
         # Perímetro cefálico
         if medicion.get("perimetro_cefalico_cm"):
-            children.append(info_row("Perímetro cefálico", f"{medicion['perimetro_cefalico_cm']:.1f} cm"))
-        
+            children.append(
+                info_row(
+                    "Perímetro cefálico", f"{medicion['perimetro_cefalico_cm']:.1f} cm"
+                )
+            )
+
         # Fecha de medición
         if medicion.get("fecha_medicion"):
             fecha = medicion["fecha_medicion"]
@@ -153,7 +165,7 @@ class ResultadoView:
             else:
                 fecha_str = str(fecha)
             children.append(info_row("Fecha", fecha_str))
-        
+
         return toga.Box(
             children=children,
             style=Pack(direction=COLUMN),
@@ -171,6 +183,103 @@ class ResultadoView:
 
         return toga.Box(
             children=children,
+            style=Pack(direction=COLUMN),
+        )
+
+    def _build_secondary_indicators_section(self) -> toga.Box:
+        """Construye tarjetas para indicadores OMS secundarios."""
+
+        oms = self.resultados.get("oms2006", {})
+        indicadores = oms.get("indicadores", {})
+        secundarios = [
+            "weight_for_age",
+            "length_for_age",
+            "height_for_age",
+            "weight_for_length",
+            "weight_for_height",
+            "head_circumference_for_age",
+        ]
+
+        children = [
+            section_header(
+                "Indicadores OMS 2006", "Z-score · percentil · clasificación"
+            ),
+        ]
+        for clave in secundarios:
+            item = indicadores.get(clave)
+            if not item:
+                continue
+            children.append(
+                result_card(
+                    label=item["nombre"],
+                    value=f"{item['z_score_texto']} · {item['percentil_texto']}",
+                    detail=item["clasificacion"],
+                    severity=item.get("severidad", "normal"),
+                )
+            )
+
+        return toga.Box(children=children, style=Pack(direction=COLUMN))
+
+    def _build_detail_tabs_section(self) -> toga.Box:
+        """Construye detalle técnico con pestañas ligeras para móvil."""
+
+        oms = self.resultados.get("oms2006", {})
+        indicadores = oms.get("indicadores", {})
+        audit_lines = []
+        interpretation_lines = []
+
+        for item in indicadores.values():
+            audit = item.get("auditoria", {})
+            audit_lines.append(
+                f"{item['nombre']}\n"
+                f"Valor: {item['valor']:.2f} {item['unidad']}\n"
+                f"L={audit.get('L'):.4f}  M={audit.get('M'):.4f}  "
+                f"S={audit.get('S'):.5f}\n"
+                f"Z={item['z_score']:+.2f}  Percentil={item['percentil']:.1f}\n"
+                f"Fuente: {audit.get('fuente')}\n"
+            )
+            interpretation_lines.append(
+                f"{item['nombre']}: {item['clasificacion']}. {item['interpretacion']}"
+            )
+
+        grafica = toga.Box(
+            children=[
+                toga.Label(
+                    "Gráfica OMS",
+                    style=Pack(font_size=16, font_weight="bold", padding_bottom=8),
+                ),
+                wrapped_text(
+                    "La curva visual se agregará sobre estas mismas tablas LMS. "
+                    "Por ahora se muestran Z-score y percentil calculados con "
+                    "OMS 2006 para auditoría clínica.",
+                    height=110,
+                ),
+            ],
+            style=Pack(direction=COLUMN, padding=SPACING_MD),
+        )
+        tabla = toga.Box(
+            children=[wrapped_text("\n".join(audit_lines), height=220)],
+            style=Pack(direction=COLUMN, padding=SPACING_MD),
+        )
+        interpretacion = toga.Box(
+            children=[wrapped_text("\n\n".join(interpretation_lines), height=220)],
+            style=Pack(direction=COLUMN, padding=SPACING_MD),
+        )
+
+        tabs = toga.OptionContainer(
+            content=[
+                toga.OptionItem("Gráfica", grafica),
+                toga.OptionItem("Tabla", tabla),
+                toga.OptionItem("Interpretación", interpretacion),
+            ],
+            style=Pack(height=300),
+        )
+
+        return toga.Box(
+            children=[
+                section_header("Detalle", "Auditoría técnica del cálculo"),
+                tabs,
+            ],
             style=Pack(direction=COLUMN),
         )
 
@@ -230,7 +339,7 @@ class ResultadoView:
 
         months = total_days // 30
         days = total_days % 30
-        
+
         # Calcular semanas
         weeks = total_days // 7
         remaining_days = total_days % 7
@@ -250,17 +359,17 @@ class ResultadoView:
     def _get_clinical_severity(self, clasificacion: str, severidad: str) -> str:
         """Convierte clasificación y severidad a nivel de severidad para tarjetas."""
         color = get_clinical_color(clasificacion, severidad)
-        
+
         # Mapear colores a niveles de severidad para las tarjetas
         color_to_severity = {
-            "#B91C1C": "alta",      # Desnutrición severa
-            "#DC2626": "alta",      # Obesidad
+            "#B91C1C": "alta",  # Desnutrición severa
+            "#DC2626": "alta",  # Obesidad
             "#EA580C": "moderada",  # Bajo peso moderado
-            "#D97706": "observacion", # Sobrepeso
-            "#F59E0B": "observacion", # Bajo peso leve
-            "#16A34A": "normal",    # Normal
+            "#D97706": "observacion",  # Sobrepeso
+            "#F59E0B": "observacion",  # Bajo peso leve
+            "#16A34A": "normal",  # Normal
         }
-        
+
         return color_to_severity.get(color, "normal")
 
     def _build_result_cards(self, imc_data: dict) -> toga.Box:
@@ -280,10 +389,10 @@ class ResultadoView:
         if "clasificacion" in imc_data:
             clasificacion = imc_data["clasificacion"]
             severidad = imc_data.get("severidad", "normal")
-            
+
             # Usar colores clínicos según clasificación
             clinical_severity = self._get_clinical_severity(clasificacion, severidad)
-            
+
             cards.append(
                 result_card(
                     label="Clasificación",

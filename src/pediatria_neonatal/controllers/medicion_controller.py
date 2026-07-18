@@ -7,7 +7,9 @@ import toga
 
 from pediatria_neonatal.application.context import ServiceContext
 from pediatria_neonatal.application.state import AppState
+from pediatria_neonatal.domain.lms import IndicadorCrecimiento
 from pediatria_neonatal.domain.paciente import MedicionAntropometrica
+from pediatria_neonatal.services.oms2006 import PosicionMedicion, ResultadoIndicadorOMS
 from pediatria_neonatal.views.medicion_view import MedicionView
 
 
@@ -63,9 +65,7 @@ class MedicionController:
             perimetro_str = str(raw_data.get("perimetro_cefalico_cm") or "").strip()
 
             if not peso_str and not talla_str:
-                raise ValueError(
-                    "Ingrese al menos peso o talla para calcular."
-                )
+                raise ValueError("Ingrese al menos peso o talla para calcular.")
 
             peso_kg = float(peso_str) if peso_str else None
             talla_cm = float(talla_str) if talla_str else None
@@ -94,7 +94,7 @@ class MedicionController:
         paciente: Any,
         medicion: MedicionAntropometrica,
     ) -> dict[str, Any]:
-        """Ejecuta los cálculos usando los servicios."""
+        """Ejecuta los cálculos usando los servicios OMS 2006."""
         resultados: dict[str, Any] = {
             "alertas": [],
         }
@@ -102,11 +102,6 @@ class MedicionController:
         edad_corregida = self.services.neonatal.calcular_edad_corregida_paciente(
             paciente=paciente,
             fecha_medicion=medicion.fecha_medicion,
-        )
-
-        # Formatear edad cronológica con abreviaturas
-        edad_cronologica_texto = self._format_age_from_days(
-            edad_corregida.edad_cronologica_dias
         )
 
         resultados["edad_corregida"] = {
@@ -119,124 +114,157 @@ class MedicionController:
             "es_prematuro": paciente.es_prematuro,
             "es_antes_de_termino": edad_corregida.es_antes_de_termino,
         }
-        
-        # Agregar edad cronológica formateada para el historial
-        resultados["edad_cronologica_texto"] = edad_cronologica_texto
-        
-        # También agregar edad corregida formateada para el historial
+        resultados["edad_cronologica_texto"] = self._format_age_from_days(
+            edad_corregida.edad_cronologica_dias
+        )
+
         if paciente.es_prematuro:
             resultados["edad_corregida_texto"] = self._format_age_from_days(
                 edad_corregida.edad_corregida_total_dias
             )
-            
-            # Clasificación de prematuro tardío
-            semanas_gestacion = paciente.datos_neonatales.edad_gestacional_semanas
-            if semanas_gestacion >= 34 and semanas_gestacion < 37:
-                resultados["clasificacion_prematuro"] = "Prematuro tardío"
-            elif semanas_gestacion >= 32 and semanas_gestacion < 34:
-                resultados["clasificacion_prematuro"] = "Prematuro moderado"
-            elif semanas_gestacion >= 28 and semanas_gestacion < 32:
-                resultados["clasificacion_prematuro"] = "Prematuro muy precoz"
-            elif semanas_gestacion < 28:
-                resultados["clasificacion_prematuro"] = "Prematuro extremo"
-            else:
-                resultados["clasificacion_prematuro"] = "Término"
+            resultados["clasificacion_prematuro"] = self._clasificar_prematuro(
+                paciente.datos_neonatales.edad_gestacional_semanas
+            )
 
         if edad_corregida.es_antes_de_termino:
             resultados["alertas"].append(
                 "El paciente aún no alcanza la edad de término corregida."
             )
 
-        if medicion.peso_kg is not None and medicion.talla_cm is not None:
-            imc = self.services.antropometria.calcular_imc(
-                peso_kg=medicion.peso_kg,
-                talla_cm=medicion.talla_cm,
-            )
+        posicion = PosicionMedicion.normalizar(
+            getattr(self.view, "posicion_input", None).value
+            if self.view is not None and hasattr(self.view, "posicion_input")
+            else "Acostado"
+        )
+        evaluacion = self.services.oms2006.evaluar(
+            paciente=paciente,
+            medicion=medicion,
+            posicion=posicion,
+            usar_edad_corregida=True,
+        )
+        resultados["oms2006"] = self._serializar_evaluacion_oms(evaluacion)
+        resultados["alertas"].extend(evaluacion.alertas)
+        resultados["medicion_actual"] = {
+            "fecha_medicion": medicion.fecha_medicion,
+            "peso_kg": medicion.peso_kg,
+            "talla_cm": medicion.talla_cm,
+            "perimetro_cefalico_cm": medicion.perimetro_cefalico_cm,
+            "posicion": posicion.value,
+            "talla_oms_cm": evaluacion.longitud_talla.valor_oms_cm
+            if evaluacion.longitud_talla
+            else medicion.talla_cm,
+        }
 
-            imc_result = self._interpret_imc(imc, edad_corregida.meses)
-            resultados["imc"] = imc_result
-
+        imc_oms = evaluacion.obtener(IndicadorCrecimiento.IMC_PARA_EDAD)
+        if imc_oms is not None:
+            resultados["imc"] = self._serializar_resultado_principal(imc_oms)
             resultados["interpretacion"] = {
-                "resumen": imc_result.get("descripcion", ""),
-                "recomendacion": self._get_recommendation(imc_result),
+                "resumen": imc_oms.interpretacion,
+                "recomendacion": self._get_recommendation(resultados["imc"]),
             }
 
         return resultados
 
-    def _interpret_imc(self, imc: float, edad_meses: int) -> dict[str, Any]:
-        """Interpreta el IMC según la edad."""
-        if imc < 14:
-            clasificacion = "Bajo peso"
-            severidad = "moderada"
-            descripcion = (
-                "El IMC se encuentra por debajo del rango esperado. "
-                "Se recomienda evaluación nutricional."
-            )
-        elif imc < 17:
-            clasificacion = "Normal bajo"
-            severidad = "observacion"
-            descripcion = (
-                "El IMC está en el límite inferior del rango normal. "
-                "Mantener seguimiento."
-            )
-        elif imc < 25:
-            clasificacion = "Normal"
-            severidad = "normal"
-            descripcion = (
-                "El IMC se encuentra dentro del rango esperado "
-                "para la edad del paciente."
-            )
-        elif imc < 30:
-            clasificacion = "Sobrepeso"
-            severidad = "observacion"
-            descripcion = (
-                "El IMC indica sobrepeso. "
-                "Se recomienda evaluación de hábitos alimenticios."
-            )
-        else:
-            clasificacion = "Obesidad"
-            severidad = "alta"
-            descripcion = (
-                "El IMC indica obesidad. "
-                "Se requiere intervención nutricional."
-            )
+    def _serializar_evaluacion_oms(self, evaluacion: Any) -> dict[str, Any]:
+        """Convierte la evaluación OMS a un diccionario apto para UI/historial."""
 
         return {
-            "valor": imc,
-            "clasificacion": clasificacion,
-            "severidad": severidad,
-            "descripcion": descripcion,
-            "percentil": self._estimate_percentile(imc),
-            "z_score": self._estimate_zscore(imc),
+            "edad_cronologica_dias": evaluacion.edad_cronologica_dias,
+            "edad_usada_dias": evaluacion.edad_usada_dias,
+            "tipo_edad_usada": evaluacion.tipo_edad_usada,
+            "motivo_edad_usada": evaluacion.motivo_edad_usada,
+            "longitud_talla": {
+                "valor_original_cm": evaluacion.longitud_talla.valor_original_cm,
+                "valor_oms_cm": evaluacion.longitud_talla.valor_oms_cm,
+                "posicion_original": evaluacion.longitud_talla.posicion_original.value,
+                "ajuste_cm": evaluacion.longitud_talla.ajuste_cm,
+                "descripcion_ajuste": evaluacion.longitud_talla.descripcion_ajuste,
+            }
+            if evaluacion.longitud_talla
+            else None,
+            "indicadores": {
+                indicador.value: self._serializar_indicador(resultado)
+                for indicador, resultado in evaluacion.resultados.items()
+            },
+            "alertas": list(evaluacion.alertas),
         }
 
-    def _estimate_percentile(self, imc: float) -> str:
-        """Estima el percentil basado en el IMC (simplificado)."""
-        if imc < 14:
-            return "< P5"
-        elif imc < 17:
-            return "P5 - P25"
-        elif imc < 22:
-            return "P25 - P75"
-        elif imc < 25:
-            return "P75 - P85"
-        elif imc < 30:
-            return "P85 - P95"
-        else:
-            return "> P95"
+    def _serializar_indicador(
+        self,
+        resultado: ResultadoIndicadorOMS,
+    ) -> dict[str, Any]:
+        """Convierte un indicador OMS completo a dict auditable."""
 
-    def _estimate_zscore(self, imc: float) -> str:
-        """Estima el Z-score basado en el IMC (simplificado)."""
-        if imc < 14:
-            return "< -2 DE"
-        elif imc < 17:
-            return "-2 a -1 DE"
-        elif imc < 25:
-            return "-1 a +1 DE"
-        elif imc < 30:
-            return "+1 a +2 DE"
-        else:
-            return "> +2 DE"
+        auditoria = resultado.auditoria
+        return {
+            "indicador": resultado.indicador.value,
+            "nombre": resultado.nombre,
+            "valor": resultado.valor,
+            "unidad": resultado.unidad,
+            "z_score": resultado.z_score,
+            "z_score_texto": resultado.z_score_texto,
+            "percentil": resultado.percentil,
+            "percentil_texto": resultado.percentil_texto,
+            "clasificacion": resultado.clasificacion,
+            "severidad": resultado.severidad,
+            "interpretacion": resultado.interpretacion,
+            "bandera_plausibilidad": resultado.bandera_plausibilidad,
+            "auditoria": {
+                "valor_observado": auditoria.valor_observado,
+                "unidad": auditoria.unidad,
+                "L": auditoria.parametros_lms["L"],
+                "M": auditoria.parametros_lms["M"],
+                "S": auditoria.parametros_lms["S"],
+                "z_score_bruto": auditoria.z_score_bruto,
+                "z_score": auditoria.z_score,
+                "percentil": auditoria.percentil,
+                "clasificacion": auditoria.clasificacion,
+                "severidad": auditoria.severidad,
+                "fuente": auditoria.fuente,
+                "version": auditoria.version,
+                "indice_solicitado": auditoria.indice_lms.indice_solicitado
+                if auditoria.indice_lms
+                else None,
+                "indice_usado": auditoria.indice_lms.indice_usado
+                if auditoria.indice_lms
+                else None,
+                "unidad_indice": auditoria.indice_lms.unidad_indice
+                if auditoria.indice_lms
+                else None,
+                "metodo": auditoria.indice_lms.metodo if auditoria.indice_lms else None,
+            },
+        }
+
+    def _serializar_resultado_principal(
+        self,
+        resultado: ResultadoIndicadorOMS,
+    ) -> dict[str, Any]:
+        """Adapta BMIFA a la estructura que ya consume ResultadoView."""
+
+        return {
+            "valor": resultado.valor,
+            "clasificacion": resultado.clasificacion,
+            "severidad": resultado.severidad,
+            "descripcion": resultado.interpretacion,
+            "percentil": resultado.percentil_texto,
+            "percentil_valor": resultado.percentil,
+            "z_score": resultado.z_score_texto,
+            "z_score_valor": resultado.z_score,
+            "auditoria": self._serializar_indicador(resultado)["auditoria"],
+        }
+
+    def _clasificar_prematuro(self, semanas_gestacion: int) -> str:
+        """Clasifica prematuridad por semanas gestacionales."""
+
+        if semanas_gestacion >= 37:
+            return "Término"
+        if semanas_gestacion >= 34:
+            return "Prematuro tardío"
+        if semanas_gestacion >= 32:
+            return "Prematuro moderado"
+        if semanas_gestacion >= 28:
+            return "Prematuro muy precoz"
+        return "Prematuro extremo"
 
     def _get_recommendation(self, imc_result: dict) -> str:
         """Genera recomendación basada en la clasificación."""
@@ -285,7 +313,7 @@ class MedicionController:
             edad_cronologica_texto = self._format_age_from_days(
                 edad_corregida.edad_cronologica_dias
             )
-            
+
             edad_corregida_texto = self._format_age_from_days(
                 edad_corregida.edad_corregida_total_dias
             )
@@ -315,7 +343,7 @@ class MedicionController:
 
         months = total_days // 30
         days = total_days % 30
-        
+
         # Calcular semanas
         weeks = total_days // 7
         remaining_days = total_days % 7

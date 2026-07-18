@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from pediatria_neonatal.domain.exceptions import ErrorTablaLMS
 
+
 class Sexo(StrEnum):
     """Sexo utilizado por las tablas antropométricas LMS."""
 
@@ -56,9 +57,7 @@ class Sexo(StrEnum):
         try:
             return alias[valor_normalizado]
         except KeyError as exc:
-            raise ErrorTablaLMS(
-                "Sexo inválido. Use M/masculino o F/femenino."
-            ) from exc
+            raise ErrorTablaLMS("Sexo inválido. Use M/masculino o F/femenino.") from exc
 
 
 @dataclass(frozen=True, slots=True)

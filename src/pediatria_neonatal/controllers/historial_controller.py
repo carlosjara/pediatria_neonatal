@@ -22,5 +22,3 @@ class HistorialController:
         )
 
         return self.view.build()
-
-    

@@ -61,10 +61,7 @@ def normalizar_fecha(
                 f"{nombre_campo} debe tener formato ISO YYYY-MM-DD."
             ) from exc
 
-    raise ErrorFecha(
-        f"{nombre_campo} debe ser date, datetime "
-        "o texto ISO YYYY-MM-DD."
-    )
+    raise ErrorFecha(f"{nombre_campo} debe ser date, datetime o texto ISO YYYY-MM-DD.")
 
 
 def validar_numero_positivo_opcional(
@@ -78,14 +75,10 @@ def validar_numero_positivo_opcional(
         return
 
     if isinstance(valor, bool) or not isinstance(valor, int | float):
-        raise ErrorDatoAntropometrico(
-            f"{nombre_campo} debe ser un número."
-        )
+        raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser un número.")
 
     if valor <= 0:
-        raise ErrorDatoAntropometrico(
-            f"{nombre_campo} debe ser mayor que cero."
-        )
+        raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser mayor que cero.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,10 +135,7 @@ class DatosNeonatales:
     def edad_gestacional_total_dias(self) -> int:
         """Retorna la edad gestacional total expresada en días."""
 
-        return (
-            self.edad_gestacional_semanas * 7
-            + self.edad_gestacional_dias
-        )
+        return self.edad_gestacional_semanas * 7 + self.edad_gestacional_dias
 
     @property
     def es_prematuro(self) -> bool:
@@ -170,23 +160,17 @@ class DatosNeonatales:
             )
 
         if not 0 <= dias <= self.EDAD_GESTACIONAL_MAXIMA_DIAS:
-            raise ErrorEdadGestacional(
-                "edad_gestacional_dias debe estar entre 0 y 6."
-            )
+            raise ErrorEdadGestacional("edad_gestacional_dias debe estar entre 0 y 6.")
 
         edad_total_dias = semanas * 7 + dias
-        edad_minima_dias = (
-            self.EDAD_GESTACIONAL_MINIMA_SEMANAS * 7
-        )
+        edad_minima_dias = self.EDAD_GESTACIONAL_MINIMA_SEMANAS * 7
         edad_maxima_dias = (
-            self.EDAD_GESTACIONAL_MAXIMA_SEMANAS * 7
-            + self.EDAD_GESTACIONAL_MAXIMA_DIAS
+            self.EDAD_GESTACIONAL_MAXIMA_SEMANAS * 7 + self.EDAD_GESTACIONAL_MAXIMA_DIAS
         )
 
         if not edad_minima_dias <= edad_total_dias <= edad_maxima_dias:
             raise ErrorEdadGestacional(
-                "La edad gestacional debe estar entre "
-                "22+0 y 42+6 semanas."
+                "La edad gestacional debe estar entre 22+0 y 42+6 semanas."
             )
 
 
@@ -292,9 +276,7 @@ class Paciente:
         nombre_normalizado = self.nombre.strip()
 
         if not nombre_normalizado:
-            raise ValueError(
-                "El nombre del paciente no puede estar vacío."
-            )
+            raise ValueError("El nombre del paciente no puede estar vacío.")
 
         fecha_normalizada = normalizar_fecha(
             self.fecha_nacimiento,
@@ -323,9 +305,7 @@ class Paciente:
             identificador_normalizado = self.identificador.strip()
 
             if not identificador_normalizado:
-                raise ValueError(
-                    "El identificador no puede contener solo espacios."
-                )
+                raise ValueError("El identificador no puede contener solo espacios.")
 
             object.__setattr__(
                 self,
@@ -352,8 +332,7 @@ class Paciente:
 
         if fecha_normalizada < self.fecha_nacimiento:
             raise ErrorFecha(
-                "La fecha de medición no puede ser anterior "
-                "a la fecha de nacimiento."
+                "La fecha de medición no puede ser anterior a la fecha de nacimiento."
             )
 
         return fecha_normalizada

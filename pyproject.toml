@@ -20,6 +20,14 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+
+[tool.setuptools.package-data]
+pediatria_neonatal = [
+    "data/who_2006/*.csv",
+    "data/who_2006/*.md",
+    "resources/icons/*.png",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

@@ -1,7 +1,6 @@
 """Controlador para calcular edad corregida rápidamente."""
 
 from collections.abc import Callable
-from datetime import date
 from typing import Any
 
 import toga
@@ -60,13 +59,18 @@ class EdadCorregidaController:
             fecha_medicion = data["fecha_medicion"]
 
             # Calcular edad corregida usando el servicio existente
-            edad_corregida = self.state.services.neonatal.calcular_edad_corregida_paciente(
-                paciente=paciente,
-                fecha_medicion=fecha_medicion,
+            edad_corregida = (
+                self.state.services.neonatal.calcular_edad_corregida_paciente(
+                    paciente=paciente,
+                    fecha_medicion=fecha_medicion,
+                )
             )
 
             # Formatear edades con el método existente
-            from pediatria_neonatal.controllers.medicion_controller import MedicionController
+            from pediatria_neonatal.controllers.medicion_controller import (
+                MedicionController,
+            )
+
             med_controller = MedicionController(
                 state=self.state,
                 view=None,
@@ -76,7 +80,7 @@ class EdadCorregidaController:
             edad_cronologica_texto = med_controller._format_age_from_days(
                 edad_corregida.edad_cronologica_dias
             )
-            
+
             edad_corregida_texto = med_controller._format_age_from_days(
                 edad_corregida.edad_corregida_total_dias
             )

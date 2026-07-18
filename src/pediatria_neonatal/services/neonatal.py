@@ -132,20 +132,14 @@ class CalculadoraNeonatal:
 
         edad_cronologica_dias = (medicion - nacimiento).days
 
-        dias_termino = (
-            self.SEMANAS_TERMINO
-            * self.DIAS_POR_SEMANA
-        )
+        dias_termino = self.SEMANAS_TERMINO * self.DIAS_POR_SEMANA
 
         prematuridad_dias = max(
             0,
             dias_termino - edad_gestacional_dias,
         )
 
-        edad_corregida_total_dias = (
-            edad_cronologica_dias
-            - prematuridad_dias
-        )
+        edad_corregida_total_dias = edad_cronologica_dias - prematuridad_dias
 
         semanas, dias = divmod(
             abs(edad_corregida_total_dias),
@@ -172,47 +166,29 @@ class CalculadoraNeonatal:
             eg_semanas,
             int,
         ):
-            raise ErrorEdadGestacional(
-                "eg_semanas debe ser un número entero."
-            )
+            raise ErrorEdadGestacional("eg_semanas debe ser un número entero.")
 
         if isinstance(eg_dias, bool) or not isinstance(
             eg_dias,
             int,
         ):
-            raise ErrorEdadGestacional(
-                "eg_dias debe ser un número entero."
-            )
+            raise ErrorEdadGestacional("eg_dias debe ser un número entero.")
 
         if not 0 <= eg_dias <= self.EDAD_GESTACIONAL_MAXIMA_DIAS:
-            raise ErrorEdadGestacional(
-                "eg_dias debe estar entre 0 y 6."
-            )
+            raise ErrorEdadGestacional("eg_dias debe estar entre 0 y 6.")
 
-        edad_gestacional_total_dias = (
-            eg_semanas * self.DIAS_POR_SEMANA
-            + eg_dias
-        )
+        edad_gestacional_total_dias = eg_semanas * self.DIAS_POR_SEMANA + eg_dias
 
-        edad_minima_dias = (
-            self.EDAD_GESTACIONAL_MINIMA_SEMANAS
-            * self.DIAS_POR_SEMANA
-        )
+        edad_minima_dias = self.EDAD_GESTACIONAL_MINIMA_SEMANAS * self.DIAS_POR_SEMANA
 
         edad_maxima_dias = (
-            self.EDAD_GESTACIONAL_MAXIMA_SEMANAS
-            * self.DIAS_POR_SEMANA
+            self.EDAD_GESTACIONAL_MAXIMA_SEMANAS * self.DIAS_POR_SEMANA
             + self.EDAD_GESTACIONAL_MAXIMA_DIAS
         )
 
-        if not (
-            edad_minima_dias
-            <= edad_gestacional_total_dias
-            <= edad_maxima_dias
-        ):
+        if not (edad_minima_dias <= edad_gestacional_total_dias <= edad_maxima_dias):
             raise ErrorEdadGestacional(
-                "La edad gestacional debe estar entre "
-                "22+0 y 42+6 semanas."
+                "La edad gestacional debe estar entre 22+0 y 42+6 semanas."
             )
 
         return edad_gestacional_total_dias
@@ -226,8 +202,7 @@ class CalculadoraNeonatal:
 
         if fecha_medicion < fecha_nacimiento:
             raise ErrorFecha(
-                "La fecha de medición no puede ser anterior "
-                "a la fecha de nacimiento."
+                "La fecha de medición no puede ser anterior a la fecha de nacimiento."
             )
 
     @staticmethod
@@ -253,6 +228,5 @@ class CalculadoraNeonatal:
                 ) from exc
 
         raise ErrorFecha(
-            f"{nombre_campo} debe ser date, datetime "
-            "o texto ISO YYYY-MM-DD."
+            f"{nombre_campo} debe ser date, datetime o texto ISO YYYY-MM-DD."
         )

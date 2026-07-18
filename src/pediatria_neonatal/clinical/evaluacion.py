@@ -13,6 +13,7 @@ from pediatria_neonatal.domain.lms import (
     ReferenciaCrecimiento,
 )
 
+
 class NivelSeveridad(StrEnum):
     """Nivel de relevancia clínica de un resultado."""
 
@@ -278,9 +279,7 @@ class EvaluadorCrecimiento:
                 "regla clínica configurada para esta referencia."
             ),
             referencia=referencia,
-            alertas=(
-                "No interpretar el resultado como diagnóstico automático.",
-            ),
+            alertas=("No interpretar el resultado como diagnóstico automático.",),
         )
 
     @staticmethod
@@ -296,9 +295,7 @@ class EvaluadorCrecimiento:
         """
 
         if not math.isfinite(z_score):
-            raise ErrorDatoAntropometrico(
-                "El Z-score debe ser un número finito."
-            )
+            raise ErrorDatoAntropometrico("El Z-score debe ser un número finito.")
 
         percentil = (
             0.5
@@ -324,10 +321,7 @@ class EvaluadorCrecimiento:
                 "La evaluación debe contener al menos un indicador."
             )
 
-        severidades = {
-            resultado.severidad
-            for resultado in resultados
-        }
+        severidades = {resultado.severidad for resultado in resultados}
 
         alertas: list[str] = []
 
@@ -337,9 +331,7 @@ class EvaluadorCrecimiento:
                 "importante. Los resultados deben correlacionarse con la "
                 "historia clínica, la técnica de medición y la evolución."
             )
-            alertas.append(
-                "Revisar los indicadores marcados con severidad alta."
-            )
+            alertas.append("Revisar los indicadores marcados con severidad alta.")
         elif NivelSeveridad.MODERADA in severidades:
             resumen = (
                 "Se identificaron indicadores que requieren valoración "
@@ -356,10 +348,7 @@ class EvaluadorCrecimiento:
                 "rangos esperados para la referencia seleccionada."
             )
 
-        referencias = {
-            resultado.referencia
-            for resultado in resultados
-        }
+        referencias = {resultado.referencia for resultado in resultados}
 
         if len(referencias) > 1:
             alertas.append(
@@ -385,9 +374,7 @@ class EvaluadorCrecimiento:
         """Interpreta IMC/edad y peso/longitud o peso/talla."""
 
         if z_score < -3:
-            clasificacion = (
-                ClasificacionCrecimiento.DESNUTRICION_AGUDA_SEVERA
-            )
+            clasificacion = ClasificacionCrecimiento.DESNUTRICION_AGUDA_SEVERA
             severidad = NivelSeveridad.ALTA
             interpretacion = (
                 "El indicador se encuentra por debajo de -3 desviaciones "
@@ -396,18 +383,14 @@ class EvaluadorCrecimiento:
                 "clínica integral."
             )
         elif z_score < -2:
-            clasificacion = (
-                ClasificacionCrecimiento.DESNUTRICION_AGUDA_MODERADA
-            )
+            clasificacion = ClasificacionCrecimiento.DESNUTRICION_AGUDA_MODERADA
             severidad = NivelSeveridad.MODERADA
             interpretacion = (
                 "El indicador se encuentra entre -3 y -2 desviaciones "
                 "estándar, compatible con déficit antropométrico."
             )
         elif z_score < -1:
-            clasificacion = (
-                ClasificacionCrecimiento.RIESGO_DESNUTRICION_AGUDA
-            )
+            clasificacion = ClasificacionCrecimiento.RIESGO_DESNUTRICION_AGUDA
             severidad = NivelSeveridad.OBSERVACION
             interpretacion = (
                 "El indicador se encuentra entre -2 y -1 desviaciones "
@@ -474,15 +457,11 @@ class EvaluadorCrecimiento:
         if z_score < -3:
             clasificacion = ClasificacionCrecimiento.BAJO_PESO_SEVERO
             severidad = NivelSeveridad.ALTA
-            interpretacion = (
-                "Peso para la edad inferior a -3 desviaciones estándar."
-            )
+            interpretacion = "Peso para la edad inferior a -3 desviaciones estándar."
         elif z_score < -2:
             clasificacion = ClasificacionCrecimiento.BAJO_PESO
             severidad = NivelSeveridad.MODERADA
-            interpretacion = (
-                "Peso para la edad entre -3 y -2 desviaciones estándar."
-            )
+            interpretacion = "Peso para la edad entre -3 y -2 desviaciones estándar."
         elif z_score < -1:
             clasificacion = ClasificacionCrecimiento.RIESGO_BAJO_PESO
             severidad = NivelSeveridad.OBSERVACION
@@ -533,15 +512,13 @@ class EvaluadorCrecimiento:
             clasificacion = ClasificacionCrecimiento.TALLA_BAJA_SEVERA
             severidad = NivelSeveridad.ALTA
             interpretacion = (
-                "Longitud o talla para la edad inferior a -3 desviaciones "
-                "estándar."
+                "Longitud o talla para la edad inferior a -3 desviaciones estándar."
             )
         elif z_score < -2:
             clasificacion = ClasificacionCrecimiento.TALLA_BAJA
             severidad = NivelSeveridad.MODERADA
             interpretacion = (
-                "Longitud o talla para la edad entre -3 y -2 desviaciones "
-                "estándar."
+                "Longitud o talla para la edad entre -3 y -2 desviaciones estándar."
             )
         elif z_score < -1:
             clasificacion = ClasificacionCrecimiento.RIESGO_TALLA_BAJA
@@ -553,9 +530,7 @@ class EvaluadorCrecimiento:
         else:
             clasificacion = ClasificacionCrecimiento.ADECUADO
             severidad = NivelSeveridad.NORMAL
-            interpretacion = (
-                "Longitud o talla para la edad dentro del rango esperado."
-            )
+            interpretacion = "Longitud o talla para la edad dentro del rango esperado."
 
         return ResultadoIndicador(
             indicador=indicador,
@@ -581,28 +556,16 @@ class EvaluadorCrecimiento:
         """Interpreta el perímetro cefálico para la edad."""
 
         if z_score < -2:
-            clasificacion = (
-                ClasificacionCrecimiento.PERIMETRO_CEFALICO_BAJO
-            )
-            severidad = (
-                NivelSeveridad.ALTA
-                if z_score < -3
-                else NivelSeveridad.MODERADA
-            )
+            clasificacion = ClasificacionCrecimiento.PERIMETRO_CEFALICO_BAJO
+            severidad = NivelSeveridad.ALTA if z_score < -3 else NivelSeveridad.MODERADA
             interpretacion = (
                 "Perímetro cefálico inferior a -2 desviaciones estándar. "
                 "Debe confirmarse la técnica de medición y correlacionarse "
                 "con la historia clínica."
             )
         elif z_score > 2:
-            clasificacion = (
-                ClasificacionCrecimiento.PERIMETRO_CEFALICO_ALTO
-            )
-            severidad = (
-                NivelSeveridad.ALTA
-                if z_score > 3
-                else NivelSeveridad.MODERADA
-            )
+            clasificacion = ClasificacionCrecimiento.PERIMETRO_CEFALICO_ALTO
+            severidad = NivelSeveridad.ALTA if z_score > 3 else NivelSeveridad.MODERADA
             interpretacion = (
                 "Perímetro cefálico superior a +2 desviaciones estándar. "
                 "Debe confirmarse la medición y evaluar la trayectoria."
@@ -616,9 +579,7 @@ class EvaluadorCrecimiento:
             )
 
         return ResultadoIndicador(
-            indicador=(
-                IndicadorCrecimiento.PERIMETRO_CEFALICO_PARA_EDAD
-            ),
+            indicador=(IndicadorCrecimiento.PERIMETRO_CEFALICO_PARA_EDAD),
             valor=valor,
             unidad=unidad,
             z_score=z_score,
@@ -638,9 +599,7 @@ class EvaluadorCrecimiento:
         """Valida y convierte un valor numérico finito."""
 
         if isinstance(valor, bool):
-            raise ErrorDatoAntropometrico(
-                f"{nombre_campo} debe ser un número real."
-            )
+            raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser un número real.")
 
         try:
             numero = float(valor)
@@ -650,8 +609,6 @@ class EvaluadorCrecimiento:
             ) from exc
 
         if not math.isfinite(numero):
-            raise ErrorDatoAntropometrico(
-                f"{nombre_campo} debe ser un número finito."
-            )
+            raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser un número finito.")
 
         return numero

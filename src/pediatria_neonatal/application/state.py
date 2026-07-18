@@ -18,28 +18,32 @@ class AppState:
             return
 
         imc_data = self.resultados_actuales.get("imc", {})
-        edad_corregida = self.resultados_actuales.get("edad_corregida", {})
-
         es_prematuro = self.paciente_actual.es_prematuro
+
+        datos_neonatales = self.paciente_actual.datos_neonatales
 
         entrada = {
             "fecha": date.today().isoformat(),
             "paciente_nombre": self.paciente_actual.nombre,
             "paciente_sexo": self.paciente_actual.sexo.value,
-            "paciente_fecha_nacimiento": self.paciente_actual.fecha_nacimiento.isoformat(),
+            "paciente_fecha_nacimiento": (
+                self.paciente_actual.fecha_nacimiento.isoformat()
+            ),
             "paciente_datos_neonatales": {
-                "edad_gestacional_semanas": self.paciente_actual.datos_neonatales.edad_gestacional_semanas,
-                "edad_gestacional_dias": self.paciente_actual.datos_neonatales.edad_gestacional_dias,
-                "peso_nacimiento_kg": self.paciente_actual.datos_neonatales.peso_nacimiento_kg,
-                "talla_nacimiento_cm": self.paciente_actual.datos_neonatales.talla_nacimiento_cm,
-                "perimetro_cefalico_nacimiento_cm": self.paciente_actual.datos_neonatales.perimetro_cefalico_nacimiento_cm,
+                "edad_gestacional_semanas": (
+                    datos_neonatales.edad_gestacional_semanas
+                ),
+                "edad_gestacional_dias": datos_neonatales.edad_gestacional_dias,
+                "peso_nacimiento_kg": datos_neonatales.peso_nacimiento_kg,
+                "talla_nacimiento_cm": datos_neonatales.talla_nacimiento_cm,
+                "perimetro_cefalico_nacimiento_cm": (
+                    datos_neonatales.perimetro_cefalico_nacimiento_cm
+                ),
             },
             "imc": imc_data.get("valor", 0),
             "clasificacion": imc_data.get("clasificacion", ""),
             "severidad": imc_data.get("severidad", "normal"),
-            "edad_texto": self.resultados_actuales.get(
-                "edad_cronologica_texto", ""
-            ),
+            "edad_texto": self.resultados_actuales.get("edad_cronologica_texto", ""),
             "es_prematuro": es_prematuro,
             "edad_corregida_texto": self.resultados_actuales.get(
                 "edad_corregida_texto", ""

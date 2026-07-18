@@ -5,7 +5,7 @@ from datetime import date
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW
+from toga.style.pack import COLUMN
 
 from pediatria_neonatal.views.components import (
     field_label,
@@ -43,11 +43,16 @@ class EdadCorregidaView:
     def build(self) -> toga.Widget:
         """Construye la interfaz de cálculo de edad corregida."""
         # Información del paciente
+        semanas_eg = self.paciente_data.get("semanas_eg", 0)
+        dias_eg = self.paciente_data.get("dias_eg", 0)
+        es_prematuro = self.paciente_data.get("es_prematuro", False)
+        prematuro_texto = "Sí" if es_prematuro else "No"
+
         paciente_info = (
             f"Paciente: {self.paciente_data.get('nombre', '')}\n"
             f"Fecha nacimiento: {self.paciente_data.get('fecha_nacimiento', '')}\n"
-            f"Edad gestacional: {self.paciente_data.get('semanas_eg', 0)}+{self.paciente_data.get('dias_eg', 0)}\n"
-            f"Prematuro: {'Sí' if self.paciente_data.get('es_prematuro', False) else 'No'}"
+            f"Edad gestacional: {semanas_eg}+{dias_eg}\n"
+            f"Prematuro: {prematuro_texto}"
         )
 
         content = toga.Box(
@@ -104,12 +109,12 @@ class EdadCorregidaView:
         """Muestra el resultado del cálculo."""
         edad_cronologica = resultado.get("edad_cronologica_texto", "")
         edad_corregida = resultado.get("edad_corregida_texto", "")
-        
+
         texto_resultado = f"Edad cronológica: {edad_cronologica}"
-        
+
         if resultado.get("es_prematuro", False) and edad_corregida:
             texto_resultado += f"\nEdad corregida: {edad_corregida}"
-        
+
         self.resultado_label.text = texto_resultado
 
     def show_error(self, message: str) -> None:

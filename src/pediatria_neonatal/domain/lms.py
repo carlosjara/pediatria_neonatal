@@ -23,9 +23,7 @@ class IndicadorCrecimiento(StrEnum):
 
     PESO_PARA_EDAD_GESTACIONAL = "weight_for_gestational_age"
     LONGITUD_PARA_EDAD_GESTACIONAL = "length_for_gestational_age"
-    PERIMETRO_CEFALICO_PARA_EDAD_GESTACIONAL = (
-        "head_circumference_for_gestational_age"
-    )
+    PERIMETRO_CEFALICO_PARA_EDAD_GESTACIONAL = "head_circumference_for_gestational_age"
 
     INDICE_OBESIDAD = "obesity_index"
 
@@ -96,19 +94,13 @@ class ParametrosLMS:
         )
 
         if self.edad < 0:
-            raise ErrorTablaLMS(
-                "La edad de la referencia no puede ser negativa."
-            )
+            raise ErrorTablaLMS("La edad de la referencia no puede ser negativa.")
 
         if self.mediana <= 0:
-            raise ErrorTablaLMS(
-                "El parámetro M debe ser mayor que cero."
-            )
+            raise ErrorTablaLMS("El parámetro M debe ser mayor que cero.")
 
         if self.coeficiente_variacion <= 0:
-            raise ErrorTablaLMS(
-                "El parámetro S debe ser mayor que cero."
-            )
+            raise ErrorTablaLMS("El parámetro S debe ser mayor que cero.")
 
         unidad_normalizada = self.unidad_edad.strip().lower()
 
@@ -117,10 +109,10 @@ class ParametrosLMS:
             "meses",
             "semanas",
             "semanas_gestacionales",
+            "cm",
         }:
             raise ErrorTablaLMS(
-                "unidad_edad debe ser dias, meses, semanas o "
-                "semanas_gestacionales."
+                "unidad_edad debe ser dias, meses, semanas, semanas_gestacionales o cm."
             )
 
         object.__setattr__(
@@ -133,9 +125,7 @@ class ParametrosLMS:
             fuente_normalizada = self.fuente.strip()
 
             if not fuente_normalizada:
-                raise ErrorTablaLMS(
-                    "La fuente no puede contener solo espacios."
-                )
+                raise ErrorTablaLMS("La fuente no puede contener solo espacios.")
 
             object.__setattr__(
                 self,
@@ -147,9 +137,7 @@ class ParametrosLMS:
             version_normalizada = self.version.strip()
 
             if not version_normalizada:
-                raise ErrorTablaLMS(
-                    "La versión no puede contener solo espacios."
-                )
+                raise ErrorTablaLMS("La versión no puede contener solo espacios.")
 
             object.__setattr__(
                 self,
@@ -158,7 +146,9 @@ class ParametrosLMS:
             )
 
     @property
-    def clave(self) -> tuple[
+    def clave(
+        self,
+    ) -> tuple[
         ReferenciaCrecimiento,
         IndicadorCrecimiento,
         Sexo,
@@ -182,11 +172,7 @@ class ParametrosLMS:
         """Valida que un atributo sea numérico y finito."""
 
         if isinstance(valor, bool) or not isinstance(valor, int | float):
-            raise ErrorTablaLMS(
-                f"{nombre_campo} debe ser un número real."
-            )
+            raise ErrorTablaLMS(f"{nombre_campo} debe ser un número real.")
 
         if not math.isfinite(float(valor)):
-            raise ErrorTablaLMS(
-                f"{nombre_campo} debe ser un número finito."
-            )
+            raise ErrorTablaLMS(f"{nombre_campo} debe ser un número finito.")

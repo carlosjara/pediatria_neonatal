@@ -1,6 +1,5 @@
 """Vista para mostrar el historial de mediciones."""
 
-from collections.abc import Callable
 from typing import Any
 
 import toga
@@ -100,7 +99,7 @@ class HistorialView:
         imc = medicion.get("imc", 0)
         clasificacion = medicion.get("clasificacion", "")
         severidad = medicion.get("severidad", "normal")
-        
+
         # Usar colores clínicos según clasificación
         color = get_clinical_color(clasificacion, severidad)
 
@@ -132,13 +131,11 @@ class HistorialView:
                 ],
                 style=Pack(direction=ROW, padding_bottom=SPACING_XS),
             ),
-            
             # Edad
             toga.Label(
                 f"Edad: {edad_texto}",
                 style=Pack(font_size=FONT_SIZE_CAPTION, color=COLOR_MUTED),
             ),
-            
             # Edad corregida (solo si es prematuro)
         ]
 

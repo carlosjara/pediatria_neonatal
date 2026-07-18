@@ -49,23 +49,20 @@ def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
         "Bajo peso leve": COLOR_MILD_UNDERWEIGHT,
         "Bajo peso": COLOR_MODERATE_UNDERWEIGHT,
         "Normal bajo": COLOR_MILD_UNDERWEIGHT,
-        
         # Normal
         "Normal": COLOR_NORMAL,
         "Eutrofia": COLOR_NORMAL,
-        
         # Sobrepeso y obesidad
         "Sobrepeso": COLOR_OVERWEIGHT,
         "Obesidad": COLOR_OBESITY,
         "Obesidad severa": COLOR_OBESITY,
-        
         # Clasificaciones de prematuro
         "Prematuro extremo": COLOR_PREMATURE_EXTREME,
         "Prematuro muy precoz": COLOR_PREMATURE_VERY_PRETERM,
         "Prematuro moderado": COLOR_PREMATURE_MODERATE,
         "Prematuro tardío": COLOR_PREMATURE_LATE,
     }
-    
+
     # Si no encuentra la clasificación, usa el sistema de severidad anterior
     if clasificacion not in color_map:
         severity_map = {
@@ -75,7 +72,7 @@ def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
             "normal": COLOR_NORMAL,
         }
         return severity_map.get(severidad, COLOR_MUTED)
-    
+
     return color_map.get(clasificacion, COLOR_NORMAL)
 
 
@@ -178,12 +175,6 @@ def alert_box(
         "success": COLOR_SUCCESS,
         "warning": COLOR_WARNING,
         "danger": COLOR_DANGER,
-    }
-    bg_map = {
-        "info": "#EFF6FF",
-        "success": "#F0FDF4",
-        "warning": "#FFFBEB",
-        "danger": "#FEF2F2",
     }
     icon_map = {
         "info": "ℹ️",
@@ -300,14 +291,7 @@ def result_card(
         "moderada": COLOR_WARNING,
         "alta": COLOR_DANGER,
     }
-    bg_map = {
-        "normal": "#F0FDF4",
-        "observacion": "#FFFBEB",
-        "moderada": "#FFFBEB",
-        "alta": "#FEF2F2",
-    }
     accent_color = color_map.get(severity, COLOR_MUTED)
-    bg_color = bg_map.get(severity, COLOR_BACKGROUND)
 
     children = [
         toga.Label(

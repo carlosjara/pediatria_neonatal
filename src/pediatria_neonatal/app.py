@@ -37,14 +37,10 @@ class PediatriaNeonatalApp(toga.App):
         self.services = create_service_context()
         self.icons = get_icons()
 
-        self.patient_container = toga.Box(
-            style=Pack(direction=COLUMN, flex=1)
-        )
+        self.patient_container = toga.Box(style=Pack(direction=COLUMN, flex=1))
         self.navigator = Navigator(self.patient_container)
 
-        self.history_container = toga.Box(
-            style=Pack(direction=COLUMN, flex=1)
-        )
+        self.history_container = toga.Box(style=Pack(direction=COLUMN, flex=1))
 
         self._init_controllers()
 
@@ -129,7 +125,6 @@ class PediatriaNeonatalApp(toga.App):
         """Muestra la calculadora de edad corregida."""
         self.navigator.show(self.edad_corregida_controller.build_view)
 
-    
     def build_home(self) -> toga.Widget:
         """Construye la pantalla de inicio."""
         return scroll_screen(
@@ -223,6 +218,7 @@ class PediatriaNeonatalApp(toga.App):
     def _open_settings(self, widget: toga.Widget) -> None:
         """Abre los ajustes del sistema."""
         import webbrowser
+
         webbrowser.open("app-settings:")
 
 

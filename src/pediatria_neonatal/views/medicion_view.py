@@ -53,6 +53,12 @@ class MedicionView:
             style=Pack(flex=1),
         )
 
+        self.posicion_input = toga.Selection(
+            items=["Acostado", "De pie"],
+            value="Acostado",
+            style=Pack(flex=1),
+        )
+
         self.perimetro_input = toga.TextInput(
             placeholder="Ej: 43.5",
             style=Pack(flex=1),
@@ -91,9 +97,13 @@ class MedicionView:
                 field_label("Peso (kg)"),
                 self.peso_input,
                 caption_text("Ingrese el peso en kilogramos"),
-                field_label("Talla (cm)"),
+                field_label("Longitud / talla (cm)"),
                 self.talla_input,
-                caption_text("Longitud en menores de 2 años, talla en mayores"),
+                caption_text(
+                    "OMS ajusta 0.7 cm si la posición no corresponde a la edad"
+                ),
+                field_label("Posición"),
+                self.posicion_input,
                 field_label("Perímetro cefálico (cm)"),
                 self.perimetro_input,
                 caption_text("Opcional para mayores de 2 años"),
@@ -123,6 +133,7 @@ class MedicionView:
                 "peso_kg": self.peso_input.value,
                 "talla_cm": self.talla_input.value,
                 "perimetro_cefalico_cm": self.perimetro_input.value,
+                "posicion": self.posicion_input.value,
             }
         )
 
@@ -135,12 +146,12 @@ class MedicionView:
         """Muestra el resultado del cálculo de edad corregida."""
         edad_cronologica = resultado.get("edad_cronologica_texto", "")
         edad_corregida = resultado.get("edad_corregida_texto", "")
-        
+
         texto = f"Edad cronológica: {edad_cronologica}"
-        
+
         if resultado.get("es_prematuro", False) and edad_corregida:
             texto += f"\nEdad corregida: {edad_corregida}"
-        
+
         self.edad_corregida_label.text = texto
 
     def go_back(self, widget: toga.Widget) -> None:

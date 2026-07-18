@@ -11,6 +11,7 @@ from pediatria_neonatal.domain.exceptions import (
 )
 from pediatria_neonatal.domain.lms import ParametrosLMS
 
+
 @dataclass(frozen=True, slots=True)
 class ResultadoZScore:
     """Resultado matemático del cálculo LMS.
@@ -61,7 +62,7 @@ class ResultadoZScore:
 class CalculadoraZScore:
     """Calcula puntuaciones Z mediante la metodología LMS."""
 
-    TOLERANCIA_LAMBDA_CERO = 1e-12
+    TOLERANCIA_LAMBDA_CERO = 1e-7
     Z_SCORE_MINIMO_TECNICO = -20.0
     Z_SCORE_MAXIMO_TECNICO = 20.0
 
@@ -124,26 +125,16 @@ class CalculadoraZScore:
             0.0,
             abs_tol=self.TOLERANCIA_LAMBDA_CERO,
         ):
-            z_score = (
-                math.log(razon)
-                / parametros.coeficiente_variacion
-            )
+            z_score = math.log(razon) / parametros.coeficiente_variacion
         else:
-            numerador = (
-                razon**parametros.lambda_box_cox
-                - 1.0
-            )
-            denominador = (
-                parametros.lambda_box_cox
-                * parametros.coeficiente_variacion
-            )
+            denominador = parametros.lambda_box_cox * parametros.coeficiente_variacion
 
             if math.isclose(denominador, 0.0, abs_tol=1e-15):
-                raise ErrorTablaLMS(
-                    "El denominador LMS no puede ser igual a cero."
-                )
+                raise ErrorTablaLMS("El denominador LMS no puede ser igual a cero.")
 
-            z_score = numerador / denominador
+            z_score = (
+                math.expm1(parametros.lambda_box_cox * math.log(razon)) / denominador
+            )
 
         self._validar_z_score(z_score)
 
@@ -155,6 +146,58 @@ class CalculadoraZScore:
             percentil=percentil,
             parametros=parametros,
         )
+
+    def calcular_valor_desde_z(
+        self,
+        z_score: float,
+        parametros: ParametrosLMS,
+    ) -> float:
+        """Convierte un Z-score a valor observado usando LMS inverso."""
+
+        if math.isclose(
+            parametros.lambda_box_cox,
+            0.0,
+            abs_tol=self.TOLERANCIA_LAMBDA_CERO,
+        ):
+            return parametros.mediana * math.exp(
+                parametros.coeficiente_variacion * z_score
+            )
+
+        base = (
+            1.0 + parametros.lambda_box_cox * parametros.coeficiente_variacion * z_score
+        )
+        if base <= 0:
+            raise ErrorTablaLMS("La combinación LMS no admite el Z-score solicitado.")
+
+        return parametros.mediana * (base ** (1.0 / parametros.lambda_box_cox))
+
+    def ajustar_z_score_oms(
+        self,
+        valor: float,
+        parametros: ParametrosLMS,
+        z_score: float,
+    ) -> float:
+        """Aplica la extensión OMS para Z-scores fuera de ±3 DE."""
+
+        if -3.0 <= z_score <= 3.0:
+            return z_score
+
+        valor_validado = self._validar_valor(valor)
+
+        if z_score > 3.0:
+            x2 = self.calcular_valor_desde_z(2.0, parametros)
+            x3 = self.calcular_valor_desde_z(3.0, parametros)
+            distancia = x3 - x2
+            if distancia <= 0:
+                raise ErrorTablaLMS("Distancia OMS +2/+3 inválida.")
+            return 3.0 + (valor_validado - x3) / distancia
+
+        xm2 = self.calcular_valor_desde_z(-2.0, parametros)
+        xm3 = self.calcular_valor_desde_z(-3.0, parametros)
+        distancia = xm2 - xm3
+        if distancia <= 0:
+            raise ErrorTablaLMS("Distancia OMS -2/-3 inválida.")
+        return -3.0 + (valor_validado - xm3) / distancia
 
     @staticmethod
     def calcular_percentil(z_score: float) -> float:
@@ -170,9 +213,7 @@ class CalculadoraZScore:
         """
 
         if isinstance(z_score, bool):
-            raise ErrorDatoAntropometrico(
-                "El Z-score debe ser un número real."
-            )
+            raise ErrorDatoAntropometrico("El Z-score debe ser un número real.")
 
         try:
             z_validado = float(z_score)
@@ -182,9 +223,7 @@ class CalculadoraZScore:
             ) from exc
 
         if not math.isfinite(z_validado):
-            raise ErrorDatoAntropometrico(
-                "El Z-score debe ser un número finito."
-            )
+            raise ErrorDatoAntropometrico("El Z-score debe ser un número finito.")
 
         return (
             0.5
@@ -214,9 +253,7 @@ class CalculadoraZScore:
             ) from exc
 
         if not math.isfinite(valor_validado):
-            raise ErrorDatoAntropometrico(
-                "El valor antropométrico debe ser finito."
-            )
+            raise ErrorDatoAntropometrico("El valor antropométrico debe ser finito.")
 
         if valor_validado <= 0:
             raise ErrorDatoAntropometrico(
@@ -233,11 +270,7 @@ class CalculadoraZScore:
                 "El cálculo LMS produjo un Z-score no finito."
             )
 
-        if not (
-            self.Z_SCORE_MINIMO_TECNICO
-            <= z_score
-            <= self.Z_SCORE_MAXIMO_TECNICO
-        ):
+        if not (self.Z_SCORE_MINIMO_TECNICO <= z_score <= self.Z_SCORE_MAXIMO_TECNICO):
             raise ErrorDatoAntropometrico(
                 "El Z-score calculado está fuera del rango técnico "
                 "permitido. Verifique las unidades, la edad, el sexo y "

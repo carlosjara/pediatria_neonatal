@@ -140,9 +140,7 @@ class CalculadoraAntropometrica:
         """Convierte y valida un número real finito."""
 
         if isinstance(valor, bool):
-            raise ErrorDatoAntropometrico(
-                f"{nombre_campo} debe ser un número real."
-            )
+            raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser un número real.")
 
         try:
             numero = float(valor)
@@ -152,8 +150,6 @@ class CalculadoraAntropometrica:
             ) from exc
 
         if not math.isfinite(numero):
-            raise ErrorDatoAntropometrico(
-                f"{nombre_campo} debe ser un número finito."
-            )
+            raise ErrorDatoAntropometrico(f"{nombre_campo} debe ser un número finito.")
 
         return numero

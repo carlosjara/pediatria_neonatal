@@ -81,10 +81,10 @@ class PacienteView:
             on_press=self.select_female,
             style=Pack(flex=1, padding_left=5),
         )
-        
+
         # Establecer estado inicial
         self.masculino_button.enabled = False  # Simula botón presionado
-        
+
         sex_row = toga.Box(
             children=[
                 self.masculino_button,
@@ -143,7 +143,7 @@ class PacienteView:
             self.selected_sex = "Masculino"
             # Actualizar estado de botones
             self.masculino_button.enabled = False  # Presionado
-            self.femenino_button.enabled = True   # No presionado
+            self.femenino_button.enabled = True  # No presionado
             self.message_label.text = "Sexo seleccionado: Masculino"
 
     def select_female(self, widget: toga.Widget) -> None:
@@ -151,7 +151,7 @@ class PacienteView:
         if self.selected_sex != "Femenino":
             self.selected_sex = "Femenino"
             # Actualizar estado de botones
-            self.masculino_button.enabled = True   # No presionado
+            self.masculino_button.enabled = True  # No presionado
             self.femenino_button.enabled = False  # Presionado
             self.message_label.text = "Sexo seleccionado: Femenino"
 
