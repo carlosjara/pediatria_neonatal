@@ -6,6 +6,9 @@ from toga.style.pack import CENTER, COLUMN, ROW
 from pediatria_neonatal.application.context import create_service_context
 from pediatria_neonatal.application.navigator import Navigator
 from pediatria_neonatal.application.state import AppState
+from pediatria_neonatal.controllers.corrected_age_calculator_controller import (
+    CorrectedAgeCalculatorController,
+)
 from pediatria_neonatal.controllers.edad_corregida_controller import (
     EdadCorregidaController,
 )
@@ -101,6 +104,10 @@ class PediatriaNeonatalApp(toga.App):
             state=self.state,
             on_back=self.show_patient,
         )
+        self.corrected_age_calculator_controller = CorrectedAgeCalculatorController(
+            neonatal=self.services.neonatal,
+            on_back_home=self._go_home,
+        )
         self.historial_controller = HistorialController(
             state=self.state,
             on_select_result=self._show_patient_result,
@@ -140,8 +147,7 @@ class PediatriaNeonatalApp(toga.App):
         average_text = f"{average_imc:.2f} kg/m²" if average_imc is not None else "--"
 
         rows = [
-            title("Home"),
-            subtitle("Hola, Dra. Vanessa Jaramillo"),
+            title("Hola, Dra. Vanessa Jaramillo"),
             toga.Label(
                 now.strftime("%H:%M"),
                 style=Pack(
@@ -161,6 +167,7 @@ class PediatriaNeonatalApp(toga.App):
                     padding_bottom=SPACING_MD,
                 ),
             ),
+            self._corrected_age_home_module(),
             subtitle("Sesión actual"),
             self._session_metric_row("Pacientes registrados", str(patient_count)),
             self._session_metric_row("IMC promedio", average_text),
@@ -169,6 +176,7 @@ class PediatriaNeonatalApp(toga.App):
                 style=Pack(
                     font_size=14,
                     color="#6B7280",
+                    text_align=CENTER,
                     padding_top=SPACING_SM,
                     padding_bottom=SPACING_MD,
                 ),
@@ -324,6 +332,11 @@ class PediatriaNeonatalApp(toga.App):
         self.home_content.clear()
         self.home_content.add(self.build_home())
 
+    def _show_corrected_age_calculator(self) -> None:
+        self.tabs.current_tab = 0
+        self.home_content.clear()
+        self.home_content.add(self.corrected_age_calculator_controller.build_view())
+
     def _render_patient_if_needed(self) -> None:
         if not self.patient_content.children:
             self.navigator.show(self.patient_controller.build_view)
@@ -354,6 +367,31 @@ class PediatriaNeonatalApp(toga.App):
                 direction=ROW,
                 padding_top=SPACING_SM,
                 padding_bottom=SPACING_SM,
+            ),
+        )
+
+    def _corrected_age_home_module(self) -> toga.Box:
+        """Módulo de acceso a calculadora efímera de edad corregida."""
+
+        return toga.Box(
+            children=[
+                toga.Label(
+                    "Calculadora de edad corregida",
+                    style=Pack(
+                        font_size=16,
+                        font_weight="bold",
+                        padding_bottom=SPACING_XS,
+                    ),
+                ),
+                secondary_button(
+                    "Abrir calculadora",
+                    lambda widget: self._show_corrected_age_calculator(),
+                ),
+            ],
+            style=Pack(
+                direction=COLUMN,
+                padding_top=SPACING_SM,
+                padding_bottom=SPACING_MD,
             ),
         )
 
@@ -437,10 +475,7 @@ class PediatriaNeonatalApp(toga.App):
                     children=[
                         menu_button,
                         toga.Box(style=Pack(flex=1)),
-                        toga.Label(
-                            "🐝",
-                            style=Pack(width=48, font_size=18, text_align=CENTER),
-                        ),
+                        self._banner_logo(),
                     ],
                     style=Pack(direction=ROW, padding_bottom=SPACING_SM),
                 ),
@@ -453,6 +488,17 @@ class PediatriaNeonatalApp(toga.App):
                 padding_left=SPACING_MD,
                 padding_right=SPACING_MD,
             ),
+        )
+
+    def _banner_logo(self) -> toga.Widget:
+        """Logo compacto del banner."""
+
+        if self.icons.baby_bee_path is None:
+            return toga.Box(style=Pack(width=48))
+
+        return toga.ImageView(
+            str(self.icons.baby_bee_path),
+            style=Pack(width=38, height=38),
         )
 
     def _show_results_summary(self) -> None:
