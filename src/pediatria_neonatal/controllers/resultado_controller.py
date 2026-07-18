@@ -6,6 +6,7 @@ from typing import Any
 import toga
 
 from pediatria_neonatal.application.state import AppState
+from pediatria_neonatal.presentation.resultados import build_results_summary
 from pediatria_neonatal.views.resultado_view import ResultadoView
 
 
@@ -36,11 +37,13 @@ class ResultadoController:
             raise ValueError("No hay resultados calculados")
 
         paciente_data = self._build_patient_data(paciente)
+        summary = build_results_summary(resultados)
 
         self.view = ResultadoView(
             paciente_nombre=paciente.nombre,
             paciente_data=paciente_data,
             resultados=resultados,
+            summary=summary,
             on_new_measurement=self.on_new_measurement,
             on_back_to_patient=self.on_back_to_patient,
         )

@@ -7,23 +7,26 @@ import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN
 
+from pediatria_neonatal.presentation.resultados import (
+    ResultsSummaryGrid,
+    semantic_color_for_classification,
+)
 from pediatria_neonatal.views.components import (
     SPACING_LG,
     SPACING_MD,
-    SPACING_SM,
     age_display,
     alert_box,
-    get_clinical_color,
-    hero_value,
     info_row,
+    main_result_card,
     patient_summary_card,
     primary_button,
-    result_card,
+    results_summary_grid,
     scroll_screen,
     secondary_button,
     section_header,
     title,
     wrapped_text,
+    zscore_chart,
 )
 
 
@@ -35,17 +38,50 @@ class ResultadoView:
         paciente_nombre: str,
         paciente_data: dict[str, Any],
         resultados: dict[str, Any],
+        summary: ResultsSummaryGrid,
         on_new_measurement: Callable[[], None],
         on_back_to_patient: Callable[[], None],
     ) -> None:
         self.paciente_nombre = paciente_nombre
         self.paciente_data = paciente_data
         self.resultados = resultados
+        self.summary = summary
         self.on_new_measurement = on_new_measurement
         self.on_back_to_patient = on_back_to_patient
+        self.root: toga.Box | None = None
+        self.selected_indicator_key: str | None = None
 
     def build(self) -> toga.Widget:
-        """Construye la interfaz de resultados."""
+        """Construye el contenedor raíz de resultados."""
+        self.root = toga.Box(style=Pack(direction=COLUMN, flex=1))
+        self._render_summary()
+        return self.root
+
+    def _render_summary(self) -> None:
+        """Muestra la pantalla de resumen de resultados."""
+        children = [title("Resultados")]
+
+        if "alertas" in self.resultados and self.resultados["alertas"]:
+            children.append(self._build_alerts_section())
+
+        children.append(main_result_card(self.summary.main_result))
+        children.append(
+            results_summary_grid(
+                self.summary.indicators,
+                self._show_indicator_detail,
+            )
+        )
+        children.extend(
+            [
+                primary_button("Ver detalle completo", self._show_full_detail),
+                secondary_button("← Volver al paciente", self._back_to_patient),
+            ]
+        )
+
+        self._replace_content(children)
+
+    def _render_detail(self) -> None:
+        """Muestra la vista detallada actual con ajustes mínimos para móvil."""
         children = [title("Resultados")]
 
         children.append(self._build_patient_summary())
@@ -53,14 +89,9 @@ class ResultadoView:
         if "edad_corregida" in self.resultados:
             children.append(self._build_age_section())
 
-        # Agregar sección de mediciones actuales
         children.append(self._build_measurements_section())
 
-        if "imc" in self.resultados:
-            children.append(self._build_imc_section())
-
         if "oms2006" in self.resultados:
-            children.append(self._build_secondary_indicators_section())
             children.append(self._build_detail_tabs_section())
 
         if "interpretacion" in self.resultados:
@@ -73,10 +104,15 @@ class ResultadoView:
             [
                 toga.Box(style=Pack(height=SPACING_LG)),
                 primary_button("Nueva medición", self._new_measurement),
+                secondary_button("← Volver al resumen", self._back_to_summary),
                 secondary_button("← Volver al paciente", self._back_to_patient),
             ]
         )
 
+        self._replace_content(children)
+
+    def _replace_content(self, children: list[toga.Widget]) -> None:
+        """Reemplaza el contenido visible manteniendo el contenedor raíz."""
         content = toga.Box(
             children=children,
             style=Pack(
@@ -86,7 +122,9 @@ class ResultadoView:
             ),
         )
 
-        return scroll_screen(content)
+        assert self.root is not None
+        self.root.clear()
+        self.root.add(scroll_screen(content))
 
     def _build_patient_summary(self) -> toga.Box:
         """Construye la tarjeta resumen del paciente."""
@@ -171,62 +209,14 @@ class ResultadoView:
             style=Pack(direction=COLUMN),
         )
 
-    def _build_imc_section(self) -> toga.Box:
-        """Construye la sección de IMC con resultados."""
-        imc_data = self.resultados["imc"]
-
-        children = [
-            section_header("Índice de Masa Corporal", "Evaluación nutricional"),
-            hero_value(f"{imc_data['valor']:.1f}", "kg/m²"),
-            self._build_result_cards(imc_data),
-        ]
-
-        return toga.Box(
-            children=children,
-            style=Pack(direction=COLUMN),
-        )
-
-    def _build_secondary_indicators_section(self) -> toga.Box:
-        """Construye tarjetas para indicadores OMS secundarios."""
-
-        oms = self.resultados.get("oms2006", {})
-        indicadores = oms.get("indicadores", {})
-        secundarios = [
-            "weight_for_age",
-            "length_for_age",
-            "height_for_age",
-            "weight_for_length",
-            "weight_for_height",
-            "head_circumference_for_age",
-        ]
-
-        children = [
-            section_header(
-                "Indicadores OMS 2006", "Z-score · percentil · clasificación"
-            ),
-        ]
-        for clave in secundarios:
-            item = indicadores.get(clave)
-            if not item:
-                continue
-            children.append(
-                result_card(
-                    label=item["nombre"],
-                    value=f"{item['z_score_texto']} · {item['percentil_texto']}",
-                    detail=item["clasificacion"],
-                    severity=item.get("severidad", "normal"),
-                )
-            )
-
-        return toga.Box(children=children, style=Pack(direction=COLUMN))
-
     def _build_detail_tabs_section(self) -> toga.Box:
         """Construye detalle técnico con pestañas ligeras para móvil."""
 
         oms = self.resultados.get("oms2006", {})
-        indicadores = oms.get("indicadores", {})
+        indicadores = self._filtered_indicators(oms.get("indicadores", {}))
         audit_lines = []
         interpretation_lines = []
+        chart_children = []
 
         for item in indicadores.values():
             audit = item.get("auditoria", {})
@@ -241,22 +231,13 @@ class ResultadoView:
             interpretation_lines.append(
                 f"{item['nombre']}: {item['clasificacion']}. {item['interpretacion']}"
             )
+            chart_children.append(self._build_zscore_chart(item))
 
-        grafica = toga.Box(
-            children=[
-                toga.Label(
-                    "Gráfica OMS",
-                    style=Pack(font_size=16, font_weight="bold", padding_bottom=8),
-                ),
-                wrapped_text(
-                    "La curva visual se agregará sobre estas mismas tablas LMS. "
-                    "Por ahora se muestran Z-score y percentil calculados con "
-                    "OMS 2006 para auditoría clínica.",
-                    height=110,
-                ),
-            ],
-            style=Pack(direction=COLUMN, padding=SPACING_MD),
+        grafica_content = toga.Box(
+            children=chart_children,
+            style=Pack(direction=COLUMN),
         )
+        grafica = scroll_screen(grafica_content)
         tabla = toga.Box(
             children=[wrapped_text("\n".join(audit_lines), height=220)],
             style=Pack(direction=COLUMN, padding=SPACING_MD),
@@ -270,14 +251,17 @@ class ResultadoView:
             content=[
                 toga.OptionItem("Gráfica", grafica),
                 toga.OptionItem("Tabla", tabla),
-                toga.OptionItem("Interpretación", interpretacion),
+                toga.OptionItem("Interp.", interpretacion),
             ],
-            style=Pack(height=300),
+            style=Pack(height=360),
         )
 
         return toga.Box(
             children=[
-                section_header("Detalle", "Auditoría técnica del cálculo"),
+                section_header(
+                    self._detail_title("Detalle"),
+                    "Auditoría técnica del cálculo",
+                ),
                 tabs,
             ],
             style=Pack(direction=COLUMN),
@@ -296,17 +280,9 @@ class ResultadoView:
 
         if "recomendacion" in interp and interp["recomendacion"]:
             children.append(
-                toga.Box(
-                    children=[
-                        toga.Label(
-                            f"📋 Recomendación: {interp['recomendacion']}",
-                            style=Pack(
-                                font_size=14,
-                                padding_top=SPACING_SM,
-                            ),
-                        ),
-                    ],
-                    style=Pack(direction=COLUMN),
+                wrapped_text(
+                    f"Recomendación: {interp['recomendacion']}",
+                    height=90,
                 )
             )
 
@@ -356,78 +332,64 @@ class ResultadoView:
             return f"{years}a, {remaining_months}M"
         return f"{years}a"
 
-    def _get_clinical_severity(self, clasificacion: str, severidad: str) -> str:
-        """Convierte clasificación y severidad a nivel de severidad para tarjetas."""
-        color = get_clinical_color(clasificacion, severidad)
+    def _build_zscore_chart(self, item: dict[str, Any]) -> toga.Box:
+        """Construye una gráfica compacta de z-score para un indicador."""
 
-        # Mapear colores a niveles de severidad para las tarjetas
-        color_to_severity = {
-            "#B91C1C": "alta",  # Desnutrición severa
-            "#DC2626": "alta",  # Obesidad
-            "#EA580C": "moderada",  # Bajo peso moderado
-            "#D97706": "observacion",  # Sobrepeso
-            "#F59E0B": "observacion",  # Bajo peso leve
-            "#16A34A": "normal",  # Normal
-        }
-
-        return color_to_severity.get(color, "normal")
-
-    def _build_result_cards(self, imc_data: dict) -> toga.Box:
-        """Construye las tarjetas de resultados."""
-        cards = []
-
-        # Mostrar valor del IMC con 2 decimales
-        if "valor" in imc_data:
-            cards.append(
-                result_card(
-                    label="IMC",
-                    value=f"{imc_data['valor']:.2f}",
-                    severity="normal",
-                )
-            )
-
-        if "clasificacion" in imc_data:
-            clasificacion = imc_data["clasificacion"]
-            severidad = imc_data.get("severidad", "normal")
-
-            # Usar colores clínicos según clasificación
-            clinical_severity = self._get_clinical_severity(clasificacion, severidad)
-
-            cards.append(
-                result_card(
-                    label="Clasificación",
-                    value=clasificacion,
-                    detail=imc_data.get("descripcion", ""),
-                    severity=clinical_severity,
-                )
-            )
-
-        if "percentil" in imc_data:
-            cards.append(
-                result_card(
-                    label="Percentil",
-                    value=imc_data["percentil"],
-                    severity="normal",
-                )
-            )
-
-        if "z_score" in imc_data:
-            cards.append(
-                result_card(
-                    label="Z-Score",
-                    value=imc_data["z_score"],
-                    severity="normal",
-                )
-            )
-
-        return toga.Box(
-            children=cards,
-            style=Pack(
-                direction=COLUMN,
-                padding_top=SPACING_SM,
-                padding_bottom=SPACING_SM,
-            ),
+        color = semantic_color_for_classification(
+            str(item.get("clasificacion") or ""),
+            str(item.get("severidad") or ""),
         )
+
+        return zscore_chart(
+            title_text=item.get("nombre", "Indicador OMS"),
+            z_score=float(item.get("z_score") or 0),
+            percentile_text=str(item.get("percentil_texto") or ""),
+            classification=str(item.get("clasificacion") or ""),
+            color=color,
+        )
+
+    def _filtered_indicators(
+        self,
+        indicadores: dict[str, dict[str, Any]],
+    ) -> dict[str, dict[str, Any]]:
+        """Devuelve todos los indicadores o solo el seleccionado."""
+
+        if self.selected_indicator_key is None:
+            return indicadores
+
+        item = indicadores.get(self.selected_indicator_key)
+        if not item:
+            return indicadores
+        return {self.selected_indicator_key: item}
+
+    def _detail_title(self, fallback: str) -> str:
+        """Agrega el nombre del indicador cuando se abre desde una tarjeta."""
+
+        if self.selected_indicator_key is None:
+            return fallback
+
+        for indicator in self.summary.indicators:
+            if indicator.key == self.selected_indicator_key:
+                return f"{fallback}: {indicator.label}"
+        return fallback
+
+    def _show_indicator_detail(self, key: str) -> None:
+        """Abre el detalle filtrado para el indicador seleccionado."""
+
+        self.selected_indicator_key = key
+        self._render_detail()
+
+    def _show_full_detail(self, widget: toga.Widget) -> None:
+        """Abre la vista detallada general."""
+
+        self.selected_indicator_key = None
+        self._render_detail()
+
+    def _back_to_summary(self, widget: toga.Widget) -> None:
+        """Regresa al resumen de resultados."""
+
+        self.selected_indicator_key = None
+        self._render_summary()
 
     def _new_measurement(self, widget: toga.Widget) -> None:
         """Inicia una nueva medición."""
