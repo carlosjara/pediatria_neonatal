@@ -33,6 +33,7 @@ def oms_curve_chart(model: OmsChartModel) -> toga.Box:
 
     canvas = toga.Canvas(style=Pack(height=CHART_HEIGHT, flex=1))
     canvas.on_resize = _draw_on_resize(model)
+    _prime_canvas(canvas, model)
 
     return toga.Box(
         children=[
@@ -57,6 +58,13 @@ def oms_curve_chart(model: OmsChartModel) -> toga.Box:
         ],
         style=Pack(direction=COLUMN, padding=SPACING_MD),
     )
+
+
+def _prime_canvas(canvas: toga.Canvas, model: OmsChartModel) -> None:
+    """Dibuja una primera versión antes del resize nativo en iOS."""
+
+    canvas.root_state.drawing_actions.clear()
+    _draw_chart(canvas, model, 320, CHART_HEIGHT)
 
 
 def _draw_on_resize(model: OmsChartModel) -> Callable[..., None]:

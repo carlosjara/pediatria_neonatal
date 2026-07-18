@@ -266,18 +266,49 @@ class ResultadoView:
     def _build_interpretation_section(self) -> toga.Box:
         """Construye la sección de interpretación clínica."""
         interp = self.resultados["interpretacion"]
+        selected_item = self._selected_indicator_item()
+
+        if selected_item is not None:
+            indicator_name = str(selected_item.get("nombre") or "Indicador OMS")
+            children = [
+                section_header(
+                    "Interpretación clínica",
+                    f"Indicador evaluado: {indicator_name}",
+                )
+            ]
+            interpretation = str(selected_item.get("interpretacion") or "")
+            classification = str(selected_item.get("clasificacion") or "")
+            clinical_text = (
+                f"{indicator_name}: {classification}. {interpretation}"
+                if classification
+                else f"{indicator_name}: {interpretation}"
+            )
+            children.append(wrapped_text(clinical_text, height=110))
+
+            return toga.Box(
+                children=children,
+                style=Pack(direction=COLUMN),
+            )
 
         children = [
-            section_header("Interpretación clínica", "Análisis del resultado"),
+            section_header("Interpretación general", "Síntesis de indicadores OMS"),
         ]
 
-        if "resumen" in interp and interp["resumen"]:
-            children.append(wrapped_text(interp["resumen"], height=70))
+        indicator_lines = self._indicator_interpretation_lines()
+        if indicator_lines:
+            children.append(wrapped_text("\n\n".join(indicator_lines), height=150))
+        elif "resumen" in interp and interp["resumen"]:
+            children.append(
+                wrapped_text(
+                    f"IMC para la edad: {interp['resumen']}",
+                    height=90,
+                )
+            )
 
         if "recomendacion" in interp and interp["recomendacion"]:
             children.append(
                 wrapped_text(
-                    f"Recomendación: {interp['recomendacion']}",
+                    f"Recomendación general: {interp['recomendacion']}",
                     height=90,
                 )
             )
@@ -286,6 +317,35 @@ class ResultadoView:
             children=children,
             style=Pack(direction=COLUMN),
         )
+
+    def _selected_indicator_item(self) -> dict[str, Any] | None:
+        """Devuelve el indicador seleccionado en la vista de detalle."""
+
+        if self.selected_indicator_key is None:
+            return None
+
+        indicators = self.resultados.get("oms2006", {}).get("indicadores", {})
+        item = indicators.get(self.selected_indicator_key)
+        if not item:
+            return None
+        return item
+
+    def _indicator_interpretation_lines(self) -> list[str]:
+        """Construye líneas de interpretación por indicador."""
+
+        indicators = self.resultados.get("oms2006", {}).get("indicadores", {})
+        lines = []
+        for item in self._ordered_indicators(indicators).values():
+            name = str(item.get("nombre") or "Indicador OMS")
+            classification = str(item.get("clasificacion") or "")
+            interpretation = str(item.get("interpretacion") or "")
+            if not interpretation and not classification:
+                continue
+            if classification:
+                lines.append(f"{name}: {classification}. {interpretation}")
+            else:
+                lines.append(f"{name}: {interpretation}")
+        return lines
 
     def _build_alerts_section(self) -> toga.Box:
         """Construye la sección de alertas."""
