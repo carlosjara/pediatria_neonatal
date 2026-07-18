@@ -77,8 +77,9 @@ def _draw_chart(
     height: int,
 ) -> None:
     plot = _PlotArea(width=width, height=height)
-    x_min, x_max = _range_for_values(model.x_values, pad_ratio=0.02)
-    y_min, y_max = _range_for_values(model.y_values, pad_ratio=0.08)
+    x_min = model.view_x_min
+    x_max = model.view_x_max
+    y_min, y_max = _range_for_values(model.visible_y_values, pad_ratio=0.08)
 
     _fill_background(canvas, width, height)
     _draw_grid(canvas, plot, x_min, x_max, y_min, y_max)
@@ -113,14 +114,13 @@ def _draw_grid(
         canvas.fill_style = COLOR_MUTED
         canvas.fill_text(f"{value:.0f}", 8, y + 3, font=grid_font)
 
-    for month in (0, 12, 24, 36, 48, 60):
-        if x_min <= month <= x_max:
-            x = plot.x(month, x_min, x_max)
-            with canvas.stroke(color="#F3F4F6", line_width=1):
-                canvas.move_to(x, plot.top)
-                canvas.line_to(x, plot.bottom)
-            canvas.fill_style = COLOR_MUTED
-            canvas.fill_text(str(month), x - 7, plot.bottom + 18, font=grid_font)
+    for tick in _x_ticks(x_min, x_max):
+        x = plot.x(tick, x_min, x_max)
+        with canvas.stroke(color="#F3F4F6", line_width=1):
+            canvas.move_to(x, plot.top)
+            canvas.line_to(x, plot.bottom)
+        canvas.fill_style = COLOR_MUTED
+        canvas.fill_text(_format_tick(tick), x - 9, plot.bottom + 18, font=grid_font)
 
     with canvas.stroke(color="#CBD5E1", line_width=1.4):
         canvas.move_to(plot.left, plot.top)
@@ -143,7 +143,11 @@ def _draw_curves(
     label_font = Font(SYSTEM, 10, weight=BOLD)
 
     for curve in curves:
-        points = curve.points
+        points = tuple(
+            point
+            for point in curve.points
+            if x_min <= point.x <= x_max
+        )
         if len(points) < 2:
             continue
 
@@ -156,7 +160,9 @@ def _draw_curves(
                     plot.y(point.y, y_min, y_max),
                 )
 
-        last = points[-1]
+        last = _last_visible_point(points, x_min, x_max)
+        if last is None:
+            continue
         canvas.fill_style = curve.color
         canvas.fill_text(
             curve.label,
@@ -220,6 +226,44 @@ def _range_for_values(
     span = max(max_value - min_value, 1)
     pad = span * pad_ratio
     return min_value - pad, max_value + pad
+
+
+def _x_ticks(min_value: float, max_value: float) -> tuple[float, ...]:
+    """Marcas del eje X ajustadas al rango visible."""
+
+    span = max_value - min_value
+    if span <= 6:
+        step = 1.0
+    elif span <= 12:
+        step = 2.0
+    elif span <= 24:
+        step = 4.0
+    else:
+        step = 12.0
+
+    ticks = []
+    value = min_value
+    while value <= max_value + 0.001:
+        ticks.append(round(value, 1))
+        value += step
+    return tuple(ticks)
+
+
+def _format_tick(value: float) -> str:
+    """Formatea marcas evitando decimales innecesarios."""
+
+    if abs(value - round(value)) < 0.01:
+        return str(int(round(value)))
+    return f"{value:.1f}"
+
+
+def _last_visible_point(points: tuple, min_value: float, max_value: float):
+    """Último punto visible de una curva, usado para ubicar la etiqueta."""
+
+    for point in reversed(points):
+        if min_value <= point.x <= max_value:
+            return point
+    return None
 
 
 class _PlotArea:

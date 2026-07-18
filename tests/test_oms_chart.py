@@ -21,6 +21,8 @@ def test_build_oms_chart_model_generates_bmi_curves() -> None:
     assert model.title == "IMC para la edad (OMS 2006)"
     assert model.patient_x > 0
     assert model.patient_y == 19.56
+    assert model.view_x_min == 0.0
+    assert model.view_x_max == 6.0
     assert [curve.label for curve in model.curves] == [
         "P1",
         "P3",
@@ -52,4 +54,6 @@ def test_build_oms_chart_model_generates_weight_for_length_curves() -> None:
     assert model.x_label == "Longitud (cm)"
     assert model.patient_x == 56.0
     assert model.patient_y == 6.9
+    assert model.view_x_min == 50.0
+    assert model.view_x_max == 62.0
     assert all(curve.points for curve in model.curves)

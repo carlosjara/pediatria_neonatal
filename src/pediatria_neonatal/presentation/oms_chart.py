@@ -44,6 +44,8 @@ class OmsChartModel:
     z_score_text: str
     percentile_text: str
     curves: tuple[OmsChartCurve, ...]
+    view_x_min: float
+    view_x_max: float
 
     @property
     def x_values(self) -> tuple[float, ...]:
@@ -56,6 +58,18 @@ class OmsChartModel:
     def y_values(self) -> tuple[float, ...]:
         """Valores y de todas las curvas y el punto del paciente."""
         values = [point.y for curve in self.curves for point in curve.points]
+        values.append(self.patient_y)
+        return tuple(values)
+
+    @property
+    def visible_y_values(self) -> tuple[float, ...]:
+        """Valores y dentro del rango enfocado, incluyendo el paciente."""
+        values = [
+            point.y
+            for curve in self.curves
+            for point in curve.points
+            if self.view_x_min <= point.x <= self.view_x_max
+        ]
         values.append(self.patient_y)
         return tuple(values)
 
@@ -147,6 +161,7 @@ def _build_age_based_chart_model(
         patient_x=age / DAYS_PER_MONTH,
         x_label="Edad (meses)",
         sample_values=_sample_age_days(age),
+        view_x_range=_age_view_range(age / DAYS_PER_MONTH),
         lookup=lambda sample: repository.obtener_por_edad(
             indicador=growth_indicator,
             sexo=sex,
@@ -187,6 +202,7 @@ def _build_measure_based_chart_model(
         patient_x=measure,
         x_label=label,
         sample_values=_sample_measure_cm(growth_indicator, measure),
+        view_x_range=_measure_view_range(growth_indicator, measure),
         lookup=lambda sample: repository.obtener_por_medida(
             indicador=growth_indicator,
             sexo=sex,
@@ -204,6 +220,7 @@ def _build_curve_model(
     patient_x: float,
     x_label: str,
     sample_values: tuple[int | float, ...],
+    view_x_range: tuple[float, float],
     lookup,
     point_x,
 ) -> OmsChartModel | None:
@@ -256,16 +273,18 @@ def _build_curve_model(
         z_score_text=str(indicator.get("z_score_texto") or ""),
         percentile_text=str(indicator.get("percentil_texto") or ""),
         curves=tuple(curves),
+        view_x_min=view_x_range[0],
+        view_x_max=view_x_range[1],
     )
 
 
 def _sample_age_days(patient_age_days: int) -> tuple[int, ...]:
-    """Devuelve puntos mensuales suficientes para cubrir 0 a 60 meses."""
+    """Devuelve puntos suficientes para curvas suaves en edades pequeñas."""
 
     max_age = max(60 * DAYS_PER_MONTH, patient_age_days)
     return tuple(
-        int(round(month * DAYS_PER_MONTH))
-        for month in range(0, int(max_age / DAYS_PER_MONTH) + 1)
+        int(round(day))
+        for day in range(0, int(max_age) + 1, 15)
     )
 
 
@@ -283,6 +302,42 @@ def _sample_measure_cm(
     max_cm = max(max_cm, min(max(patient_measure_cm, min_cm), max_cm))
     steps = int(round((max_cm - min_cm) / 1.0)) + 1
     return tuple(round(min_cm + index, 1) for index in range(steps))
+
+
+def _age_view_range(patient_months: float) -> tuple[float, float]:
+    """Rango visible por edad para facilitar lectura en lactantes."""
+
+    if patient_months <= 6:
+        return 0.0, 6.0
+    if patient_months <= 12:
+        return 0.0, 12.0
+    if patient_months <= 24:
+        return 0.0, 24.0
+    return 0.0, max(60.0, patient_months)
+
+
+def _measure_view_range(
+    indicator: IndicadorCrecimiento,
+    patient_measure_cm: float,
+) -> tuple[float, float]:
+    """Rango visible por longitud/talla centrado alrededor del paciente."""
+
+    if indicator == IndicadorCrecimiento.PESO_PARA_LONGITUD:
+        min_cm, max_cm = 45.0, 110.0
+    else:
+        min_cm, max_cm = 65.0, 120.0
+
+    window = 12.0
+    start = max(min_cm, patient_measure_cm - window / 2)
+    end = min(max_cm, patient_measure_cm + window / 2)
+
+    if end - start < window:
+        if start == min_cm:
+            end = min(max_cm, start + window)
+        else:
+            start = max(min_cm, end - window)
+
+    return start, end
 
 
 def _measurement_from_lms(lms: ParametrosLMS, z_score: float) -> float:
