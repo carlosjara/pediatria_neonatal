@@ -5,7 +5,7 @@ from datetime import date
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN
+from toga.style.pack import COLUMN, ROW
 
 from pediatria_neonatal.views.components import (
     SPACING_MD,
@@ -36,6 +36,9 @@ class MedicionView:
         self.on_calculate = on_calculate
         self.on_back = on_back
         self.on_calcular_edad = on_calcular_edad
+        self.selected_position = "Acostado"
+        self.acostado_button = None
+        self.de_pie_button = None
 
         self.fecha_input = toga.DateInput(
             value=date.today(),
@@ -50,12 +53,6 @@ class MedicionView:
 
         self.talla_input = toga.TextInput(
             placeholder="Ej: 68.0",
-            style=Pack(flex=1),
-        )
-
-        self.posicion_input = toga.Selection(
-            items=["Acostado", "De pie"],
-            value="Acostado",
             style=Pack(flex=1),
         )
 
@@ -80,6 +77,26 @@ class MedicionView:
 
     def build(self) -> toga.Widget:
         """Construye la interfaz del formulario de medición."""
+        self.acostado_button = toga.Button(
+            "Acostado",
+            on_press=self.select_acostado,
+            style=Pack(flex=1, padding_right=SPACING_SM),
+        )
+        self.de_pie_button = toga.Button(
+            "De pie",
+            on_press=self.select_de_pie,
+            style=Pack(flex=1, padding_left=SPACING_SM),
+        )
+        self.acostado_button.enabled = False
+
+        position_row = toga.Box(
+            children=[
+                self.acostado_button,
+                self.de_pie_button,
+            ],
+            style=Pack(direction=ROW),
+        )
+
         content = toga.Box(
             children=[
                 title("Nueva medición"),
@@ -103,7 +120,7 @@ class MedicionView:
                     "OMS ajusta 0.7 cm según edad y posición."
                 ),
                 field_label("Posición"),
-                self.posicion_input,
+                position_row,
                 field_label("Perímetro cefálico (cm)"),
                 self.perimetro_input,
                 caption_text("Opcional para mayores de 2 años"),
@@ -133,9 +150,21 @@ class MedicionView:
                 "peso_kg": self.peso_input.value,
                 "talla_cm": self.talla_input.value,
                 "perimetro_cefalico_cm": self.perimetro_input.value,
-                "posicion": self.posicion_input.value,
+                "posicion": self.selected_position,
             }
         )
+
+    def select_acostado(self, widget: toga.Widget) -> None:
+        """Selecciona medición acostado sin abrir picker nativo."""
+        self.selected_position = "Acostado"
+        self.acostado_button.enabled = False
+        self.de_pie_button.enabled = True
+
+    def select_de_pie(self, widget: toga.Widget) -> None:
+        """Selecciona medición de pie sin abrir picker nativo."""
+        self.selected_position = "De pie"
+        self.acostado_button.enabled = True
+        self.de_pie_button.enabled = False
 
     def calcular_edad(self, widget: toga.Widget) -> None:
         """Calcula y muestra la edad corregida para la fecha actual."""

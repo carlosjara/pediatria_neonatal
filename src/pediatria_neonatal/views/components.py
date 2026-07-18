@@ -27,6 +27,8 @@ COLOR_WARNING = "#D97706"
 COLOR_DANGER = "#DC2626"
 COLOR_MUTED = "#9CA3AF"
 COLOR_BACKGROUND = None
+COLOR_CARD_BORDER = "#E5E7EB"
+COLOR_CARD_SOFT = "#F8FAFC"
 
 # Colores clínicos para clasificaciones de crecimiento
 COLOR_SEVERE_UNDERWEIGHT = "#B91C1C"  # Rojo intenso - desnutrición severa
@@ -41,6 +43,44 @@ COLOR_PREMATURE_EXTREME = "#7C3AED"  # Púrpura intenso para prematuro extremo
 COLOR_PREMATURE_VERY_PRETERM = "#A855F7"  # Púrpura para muy prematuro
 COLOR_PREMATURE_MODERATE = "#C084FC"  # Púrpura claro para prematuro moderado
 COLOR_PREMATURE_LATE = "#E9D5FF"  # Púrpura muy claro para prematuro tardío
+
+
+def _soft_background_for_color(color: str) -> str:
+    """Color pastel estable para resaltar resultados clínicos."""
+    color_map = {
+        COLOR_SUCCESS: "#DCFCE7",
+        COLOR_NORMAL: "#DCFCE7",
+        COLOR_WARNING: "#FEF3C7",
+        COLOR_OVERWEIGHT: "#FEF3C7",
+        COLOR_DANGER: "#FEE2E2",
+        COLOR_OBESITY: "#FEE2E2",
+        "#1D4ED8": "#DBEAFE",
+        COLOR_MUTED: "#F3F4F6",
+    }
+    return color_map.get(color, "#F3F4F6")
+
+
+def _soft_panel(children: list[toga.Widget], background: str = COLOR_CARD_SOFT):
+    """Panel con fondo suave compatible con Toga 0.5.6."""
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=COLUMN,
+            background_color=background,
+            padding=SPACING_MD,
+        ),
+    )
+
+
+def _soft_row_panel(children: list[toga.Widget], background: str) -> toga.Box:
+    return toga.Box(
+        children=children,
+        style=Pack(
+            direction=ROW,
+            background_color=background,
+            padding=SPACING_SM,
+        ),
+    )
 
 
 def get_clinical_color(clasificacion: str, severidad: str = "normal") -> str:
@@ -435,64 +475,101 @@ def patient_summary_card(
 
 def main_result_card(result: MainResultCard) -> toga.Box:
     """Tarjeta principal del resumen de resultados."""
+    semantic_background = _soft_background_for_color(result.semantic_color)
+
+    content = [
+        toga.Label(
+            "IMC para la edad",
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            "(OMS 2006)",
+            style=Pack(
+                font_size=FONT_SIZE_SUBTITLE,
+                font_weight="bold",
+                text_align=CENTER,
+                padding_bottom=SPACING_SM,
+            ),
+        ),
+        _soft_panel(
+            [
+                toga.Label(
+                    f"{result.value_text} {result.unit}",
+                    style=Pack(
+                        font_size=FONT_SIZE_HERO,
+                        font_weight="bold",
+                        text_align=CENTER,
+                    ),
+                ),
+            ],
+            background="#FFFFFF",
+        ),
+        toga.Box(style=Pack(height=SPACING_SM)),
+        _soft_row_panel(
+            [
+                toga.Label(
+                    f"{result.z_score_text} (Z-score)",
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        flex=1,
+                    ),
+                ),
+                toga.Label(
+                    result.percentile_text,
+                    style=Pack(
+                        font_size=FONT_SIZE_BODY,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        text_align=CENTER,
+                    ),
+                ),
+            ],
+            background=semantic_background,
+        ),
+        toga.Box(style=Pack(height=SPACING_SM)),
+        toga.Label(
+            "Clasificación",
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                color=COLOR_MUTED,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        _soft_panel(
+            [
+                toga.Label(
+                    result.classification_text,
+                    style=Pack(
+                        font_size=FONT_SIZE_SUBTITLE,
+                        font_weight="bold",
+                        color=result.semantic_color,
+                        text_align=CENTER,
+                    ),
+                ),
+            ],
+            background=semantic_background,
+        ),
+    ]
 
     return toga.Box(
         children=[
-            toga.Label(
-                "IMC para la edad",
+            toga.Box(
+                children=[
+                    _soft_panel(content, background=COLOR_CARD_SOFT),
+                ],
                 style=Pack(
-                    font_size=FONT_SIZE_SUBTITLE,
-                    font_weight="bold",
-                    text_align=CENTER,
+                    direction=COLUMN,
+                    background_color=COLOR_CARD_BORDER,
+                    padding=1,
                 ),
-            ),
-            toga.Label(
-                "(OMS 2006)",
-                style=Pack(
-                    font_size=FONT_SIZE_SUBTITLE,
-                    font_weight="bold",
-                    text_align=CENTER,
-                    padding_bottom=SPACING_SM,
-                ),
-            ),
-            toga.Label(
-                f"{result.value_text} {result.unit}",
-                style=Pack(
-                    font_size=FONT_SIZE_HERO,
-                    font_weight="bold",
-                    text_align=CENTER,
-                    padding_top=SPACING_SM,
-                    padding_bottom=SPACING_SM,
-                ),
-            ),
-            toga.Label(
-                f"{result.z_score_text} (Z-score) · {result.percentile_text}",
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=result.semantic_color,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_MD,
-                ),
-            ),
-            toga.Label(
-                "Clasificación",
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    color=COLOR_MUTED,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            toga.Label(
-                result.classification_text,
-                style=Pack(
-                    font_size=FONT_SIZE_SUBTITLE,
-                    font_weight="bold",
-                    color=result.semantic_color,
-                    text_align=CENTER,
-                ),
-            ),
+            )
         ],
         style=Pack(
             direction=COLUMN,
@@ -507,53 +584,67 @@ def indicator_summary_card(
     on_press: callable,
 ) -> toga.Box:
     """Tarjeta compacta para un indicador secundario."""
+    background = _soft_background_for_color(item.semantic_color)
+
+    content = [
+        toga.Label(
+            item.label,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        toga.Label(
+            item.z_score_text,
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            item.percentile_text,
+            style=Pack(
+                font_size=FONT_SIZE_BODY,
+                font_weight="bold",
+                color=item.semantic_color,
+                text_align=CENTER,
+            ),
+        ),
+        toga.Label(
+            item.classification_text,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                color=item.semantic_color,
+                text_align=CENTER,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+        toga.Button(
+            "Detalle",
+            on_press=on_press,
+            style=Pack(
+                font_size=FONT_SIZE_CAPTION,
+                padding_top=SPACING_XS,
+                padding_bottom=SPACING_XS,
+            ),
+        ),
+    ]
 
     return toga.Box(
         children=[
-            toga.Label(
-                item.label,
+            toga.Box(
+                children=[_soft_panel(content, background=background)],
                 style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            toga.Label(
-                item.z_score_text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                ),
-            ),
-            toga.Label(
-                item.percentile_text,
-                style=Pack(
-                    font_size=FONT_SIZE_BODY,
-                    font_weight="bold",
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                ),
-            ),
-            toga.Label(
-                item.classification_text,
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    color=item.semantic_color,
-                    text_align=CENTER,
-                    padding_bottom=SPACING_XS,
-                ),
-            ),
-            toga.Button(
-                "Detalle",
-                on_press=on_press,
-                style=Pack(
-                    font_size=FONT_SIZE_CAPTION,
-                    padding_top=SPACING_XS,
-                    padding_bottom=SPACING_XS,
+                    direction=COLUMN,
+                    background_color=COLOR_CARD_BORDER,
+                    padding=1,
+                    flex=1,
+                    height=132,
                 ),
             ),
         ],
